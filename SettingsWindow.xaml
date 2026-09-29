@@ -1,0 +1,160 @@
+<Window x:Class="IdleDash.SettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="IdleDash-instellingen"
+        Width="560" Height="820" MinWidth="460" MinHeight="420"
+        WindowStartupLocation="CenterScreen"
+        Background="#10151F"
+        Foreground="{StaticResource TextPrimaryBrush}"
+        FontFamily="{StaticResource UiFont}"
+        FontSize="14"
+        UseLayoutRounding="True"
+        SourceInitialized="Window_SourceInitialized">
+
+    <Window.Resources>
+        <ResourceDictionary Source="pack://application:,,,/Styles/Controls.xaml"/>
+    </Window.Resources>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto" Focusable="False">
+        <StackPanel Margin="36,28,36,40">
+            <TextBlock Text="Instellingen" FontSize="28" FontWeight="Light"/>
+            <TextBlock Style="{StaticResource Hint}" Text="Wijzigingen worden meteen opgeslagen." Margin="0,4,0,0"/>
+
+            <!-- ═══ Scherm ═══ -->
+            <TextBlock Style="{StaticResource SectionTitle}" Text="Scherm"/>
+            <TextBlock Style="{StaticResource FieldLabel}" Text="Dashboard tonen op"/>
+            <ComboBox x:Name="MonitorBox" SelectionChanged="Setting_Changed"/>
+            <TextBlock Style="{StaticResource FieldLabel}" Text="Verschijnen als het scherm leeg is na"/>
+            <ComboBox x:Name="DelayBox" SelectionChanged="Setting_Changed"/>
+            <CheckBox x:Name="PixelShiftSwitch" Style="{StaticResource Switch}" Margin="0,18,0,0"
+                      Checked="Setting_Changed" Unchecked="Setting_Changed">
+                <StackPanel>
+                    <TextBlock Text="Inbrandbescherming"/>
+                    <TextBlock Style="{StaticResource Hint}" Text="Schuift alles af en toe een paar pixels op."/>
+                </StackPanel>
+            </CheckBox>
+            <Button x:Name="ResetLayoutButton" Style="{StaticResource SecondaryButton}"
+                    Content="Standaardindeling herstellen" HorizontalAlignment="Left" Margin="0,18,0,0"
+                    Click="ResetLayoutButton_Click"/>
+
+            <!-- ═══ Nachtmodus ═══ -->
+            <TextBlock Style="{StaticResource SectionTitle}" Text="Nachtmodus"/>
+            <CheckBox x:Name="NightSwitch" Style="{StaticResource Switch}" Margin="0,8,0,0"
+                      Checked="Setting_Changed" Unchecked="Setting_Changed">
+                <StackPanel>
+                    <TextBlock Text="Dashboard 's avonds dimmen"/>
+                    <TextBlock Style="{StaticResource Hint}"
+                               Text="Beweeg je muis over het scherm om het een minuutje helder te maken."/>
+                </StackPanel>
+            </CheckBox>
+            <Grid x:Name="NightFields">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="12"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="12"/>
+                    <ColumnDefinition Width="1.4*"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Vanaf"/>
+                    <ComboBox x:Name="NightStartBox" SelectionChanged="Setting_Changed"/>
+                </StackPanel>
+                <StackPanel Grid.Column="2">
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Tot"/>
+                    <ComboBox x:Name="NightEndBox" SelectionChanged="Setting_Changed"/>
+                </StackPanel>
+                <StackPanel Grid.Column="4">
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Hoe donker"/>
+                    <ComboBox x:Name="DimBox" SelectionChanged="Setting_Changed"/>
+                </StackPanel>
+            </Grid>
+
+            <!-- ═══ Weer en Buienradar ═══ -->
+            <TextBlock Style="{StaticResource SectionTitle}" Text="Weer en Buienradar"/>
+            <TextBlock Style="{StaticResource FieldLabel}" Text="Plaats"/>
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBox x:Name="PlaceBox" KeyDown="PlaceBox_KeyDown"/>
+                <Button Grid.Column="1" Style="{StaticResource SecondaryButton}" Content="Zoeken"
+                        Margin="10,0,0,0" Click="SearchPlaceButton_Click"/>
+            </Grid>
+            <TextBlock x:Name="PlaceStatus" Style="{StaticResource Hint}" Margin="0,8,0,0"/>
+            <StackPanel x:Name="PlaceResults" Margin="-12,4,0,0"/>
+
+            <!-- ═══ Focustimer ═══ -->
+            <TextBlock Style="{StaticResource SectionTitle}" Text="Focustimer"/>
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="12"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Focus"/>
+                    <ComboBox x:Name="FocusBox" SelectionChanged="Setting_Changed"/>
+                </StackPanel>
+                <StackPanel Grid.Column="2">
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Pauze"/>
+                    <ComboBox x:Name="BreakBox" SelectionChanged="Setting_Changed"/>
+                </StackPanel>
+            </Grid>
+
+            <!-- ═══ Nieuws ═══ -->
+            <TextBlock Style="{StaticResource SectionTitle}" Text="Nieuws"/>
+            <TextBlock Style="{StaticResource FieldLabel}" Text="Rubriek van de NOS"/>
+            <ComboBox x:Name="NewsBox" SelectionChanged="Setting_Changed"/>
+
+            <!-- ═══ Google ═══ -->
+            <TextBlock Style="{StaticResource SectionTitle}" Text="Google Agenda en Taken"/>
+            <TextBlock x:Name="GoogleStatusText" TextWrapping="Wrap" Margin="0,6,0,0"/>
+            <TextBlock x:Name="GoogleHintText" Style="{StaticResource Hint}" Margin="0,4,0,0"/>
+            <WrapPanel Margin="0,12,0,0">
+                <Button x:Name="ConnectButton" Style="{StaticResource AccentButton}" Content="Koppelen met Google"
+                        Margin="0,0,10,10" Click="ConnectButton_Click"/>
+                <Button x:Name="ChooseKeyButton" Style="{StaticResource SecondaryButton}"
+                        Content="Sleutelbestand kiezen…" Margin="0,0,10,10" Click="ChooseKeyButton_Click"/>
+                <Button x:Name="DisconnectButton" Style="{StaticResource SecondaryButton}" Content="Ontkoppelen"
+                        Margin="0,0,10,10" Click="DisconnectButton_Click"/>
+                <Button x:Name="RemoveKeyButton" Style="{StaticResource SecondaryButton}"
+                        Content="Eigen sleutel verwijderen" Margin="0,0,10,10" Click="RemoveKeyButton_Click"/>
+                <Button x:Name="GoogleCloudButton" Style="{StaticResource SecondaryButton}"
+                        Content="Google Cloud openen" Margin="0,0,10,10" Click="GoogleCloudButton_Click"/>
+            </WrapPanel>
+            <StackPanel x:Name="GoogleOptions" Visibility="Collapsed">
+                <TextBlock Style="{StaticResource FieldLabel}" Text="Takenlijst op het dashboard"/>
+                <ComboBox x:Name="TaskListBox" SelectionChanged="Setting_Changed"/>
+                <TextBlock Style="{StaticResource FieldLabel}" Text="Afspraken tonen voor"/>
+                <ComboBox x:Name="CalendarDaysBox" SelectionChanged="Setting_Changed"/>
+            </StackPanel>
+
+            <!-- ═══ Algemeen ═══ -->
+            <TextBlock Style="{StaticResource SectionTitle}" Text="Algemeen"/>
+            <CheckBox x:Name="AutostartSwitch" Style="{StaticResource Switch}" Margin="0,8,0,0"
+                      Checked="AutostartSwitch_Changed" Unchecked="AutostartSwitch_Changed">
+                <StackPanel>
+                    <TextBlock Text="Starten met Windows"/>
+                    <TextBlock x:Name="AutostartHint" Style="{StaticResource Hint}"/>
+                </StackPanel>
+            </CheckBox>
+            <TextBlock Style="{StaticResource FieldLabel}" Text="Programma's die niet meetellen"/>
+            <TextBox x:Name="IgnoredBox" LostFocus="Setting_Changed"/>
+            <TextBlock Style="{StaticResource Hint}" Margin="0,6,0,0"
+                       Text="Namen zonder .exe, gescheiden door komma's. Vensters van deze programma's houden het dashboard niet tegen."/>
+
+            <!-- ═══ Over IdleDash ═══ -->
+            <TextBlock Style="{StaticResource SectionTitle}" Text="Over IdleDash"/>
+            <TextBlock x:Name="VersionText" Margin="0,6,0,0"/>
+            <TextBlock x:Name="UpdateText" Style="{StaticResource Hint}" Margin="0,4,0,0"/>
+            <WrapPanel Margin="0,12,0,0">
+                <Button x:Name="DownloadUpdateButton" Style="{StaticResource AccentButton}"
+                        Content="Nieuwe versie downloaden" Margin="0,0,10,10" Visibility="Collapsed"
+                        Click="DownloadUpdateButton_Click"/>
+                <Button x:Name="GitHubButton" Style="{StaticResource SecondaryButton}" Content="IdleDash op GitHub"
+                        Margin="0,0,10,10" Click="GitHubButton_Click"/>
+            </WrapPanel>
+        </StackPanel>
+    </ScrollViewer>
+</Window>

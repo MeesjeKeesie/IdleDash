@@ -1,0 +1,51 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <!-- windows10.0.19041.0 geeft toegang tot Windows-functies zoals "Nu aan het afspelen" -->
+    <TargetFramework>net8.0-windows10.0.19041.0</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>IdleDash</RootNamespace>
+    <AssemblyName>IdleDash</AssemblyName>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Assets\IdleDash.ico</ApplicationIcon>
+    <!-- Draait ook als er alleen een nieuwere .NET (9 of 10) op je pc staat -->
+    <RollForward>LatestMajor</RollForward>
+    <!-- Alleen Nederlandse teksten van onderdelen meenemen: scheelt veel megabytes in de download -->
+    <SatelliteResourceLanguages>nl</SatelliteResourceLanguages>
+  </PropertyGroup>
+
+  <!-- Gegevens die je ziet bij Eigenschappen > Details van IdleDash.exe.
+       Het versienummer wordt bij een release op GitHub vanzelf ingevuld (v1.2.0 wordt 1.2.0).
+       Zelf gebouwd in Visual Studio blijft het 0.0.0. -->
+  <PropertyGroup>
+    <Version>0.0.0</Version>
+    <Product>IdleDash</Product>
+    <Company>MeesjeKeesie</Company>
+    <Authors>MeesjeKeesie</Authors>
+    <Description>Dashboard voor je extra scherm dat vanzelf verschijnt als het scherm leeg is.</Description>
+    <Copyright>© MeesjeKeesie</Copyright>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.Diagnostics.PerformanceCounter" Version="8.0.0" />
+    <!-- Google Agenda en Google Taken. "1.*" = altijd de nieuwste 1.x-versie -->
+    <PackageReference Include="Google.Apis.Auth" Version="1.*" />
+    <PackageReference Include="Google.Apis.Calendar.v3" Version="1.*" />
+    <PackageReference Include="Google.Apis.Tasks.v1" Version="1.*" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="Assets\IdleDash.ico" />
+  </ItemGroup>
+
+  <!-- Ingebouwde Google-sleutel voor de officiële download. Wordt alleen ingevuld als GitHub
+       bouwt met de repository-secrets (zie .github/workflows/release.yml), dus nooit in de broncode. -->
+  <ItemGroup Condition="'$(GoogleClientId)' != '' and '$(GoogleClientSecret)' != ''">
+    <AssemblyMetadata Include="GoogleClientId" Value="$(GoogleClientId)" />
+    <AssemblyMetadata Include="GoogleClientSecret" Value="$(GoogleClientSecret)" />
+  </ItemGroup>
+
+</Project>

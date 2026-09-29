@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>IdleDash, een dashboard voor je extra scherm</title>
+  <meta name="description" content="Gratis dashboard voor Windows dat vanzelf verschijnt op je extra scherm: klok, weer, Buienradar, Google Agenda en Taken, muziek, NOS-nieuws en een focustimer.">
+  <link rel="icon" href="icon.png">
+  <style>
+    :root { --text: #EEF1F6; --muted: #9AA4B5; --line: rgba(255,255,255,.12); }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; color: var(--text); font: 17px/1.6 "Segoe UI", system-ui, sans-serif;
+           background: linear-gradient(#15233A, #0C1422) fixed; }
+    main { max-width: 720px; margin: 0 auto; padding: 72px 24px 48px; }
+    img.icon { width: 88px; height: 88px; border-radius: 20px; }
+    h1 { font-size: 44px; font-weight: 300; margin: 20px 0 8px; }
+    h2 { font-size: 20px; font-weight: 600; margin: 48px 0 8px; }
+    p { margin: 0 0 14px; }
+    .lead { font-size: 20px; color: var(--muted); }
+    .button { display: inline-block; margin: 20px 0 8px; padding: 12px 22px; border-radius: 10px;
+              background: #DCE4F0; color: #0C1422; font-weight: 600; text-decoration: none; }
+    .button:hover { background: #fff; }
+    .small { font-size: 14px; color: var(--muted); }
+    ul { padding-left: 20px; }
+    a { color: #8FB3E6; }
+    footer { margin-top: 56px; padding-top: 20px; border-top: 1px solid var(--line); font-size: 14px; color: var(--muted); }
+  </style>
+</head>
+<body>
+<main>
+  <img class="icon" src="icon.png" alt="">
+  <h1>IdleDash</h1>
+  <p class="lead">Een dashboard voor je extra scherm. Het verschijnt vanzelf zodra daar geen vensters meer staan, en verdwijnt weer als je er iets naartoe sleept.</p>
+  <a class="button" href="https://github.com/MeesjeKeesie/IdleDash/releases/latest">Downloaden voor Windows</a>
+  <p class="small">Voor Windows 10 en 11. Gratis en open source.</p>
+
+  <h2>Wat staat erop</h2>
+  <ul>
+    <li>Klok, weer en Buienradar voor de komende twee uur</li>
+    <li>Je afspraken uit Google Agenda en je taken uit Google Taken</li>
+    <li>Wat er speelt in Spotify of je browser, met bediening</li>
+    <li>Nieuwskoppen van de NOS, PC-stats en een focustimer</li>
+    <li>Een nachtmodus die het scherm 's avonds dimt</li>
+  </ul>
+  <p>Je kiest zelf welke onderdelen je ziet en waar ze staan.</p>
+
+  <h2>Je gegevens</h2>
+  <p>IdleDash vraagt alleen toegang tot je Google Agenda (alleen lezen) en je Google Taken, zodat het ze op je eigen scherm kan tonen. Alles blijft op je eigen pc: er is geen server van IdleDash die je gegevens ziet. Lees het <a href="privacy.html">privacybeleid</a>.</p>
+
+  <h2>In English</h2>
+  <p>IdleDash is a free, open-source Windows dashboard for a spare monitor. It appears when that monitor has no windows on it and shows the time, weather, your Google Calendar events and Google Tasks, music controls and news. Google data is only used to display it on your own screen and never leaves your computer except to communicate directly with Google. See the <a href="privacy.html#english">privacy policy</a>.</p>
+
+  <footer>
+    <a href="privacy.html">Privacybeleid</a> &nbsp;·&nbsp;
+    <a href="https://github.com/MeesjeKeesie/IdleDash">Broncode op GitHub</a> &nbsp;·&nbsp;
+    <a href="https://github.com/MeesjeKeesie/IdleDash/issues">Contact</a><br>
+    IdleDash is niet verbonden aan Google, Buienradar of de NOS.
+  </footer>
+</main>
+</body>
+</html>

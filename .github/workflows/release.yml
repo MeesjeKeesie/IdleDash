@@ -1,0 +1,103 @@
+# Bouwt IdleDash op GitHub en hangt de installer aan je release.
+#
+# Zo gebruik je het:
+# - Testen: tabblad Actions > "IdleDash bouwen" > Run workflow. De bestanden staan daarna onder Artifacts.
+# - Uitbrengen: Releases > Draft a new release > tag bv. v1.0.0 > Publish release.
+#   Na een paar minuten staan de installer en de losse versie bij de release.
+#
+# Nodig: twee repository-secrets (Settings > Secrets and variables > Actions):
+#   GOOGLE_CLIENT_ID en GOOGLE_CLIENT_SECRET, uit het sleutelbestand van je Google Cloud-project.
+
+name: IdleDash bouwen
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: write   # nodig om bestanden aan de release te hangen
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Code ophalen
+        uses: actions/checkout@v6
+
+      - name: .NET 8 installeren
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Versienummer bepalen
+        id: version
+        shell: pwsh
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          $version = "$env:TAG".TrimStart('v', 'V')
+          if ($version -notmatch '^\d+\.\d+\.\d+$') { $version = '0.0.0' }
+          "version=$version" >> $env:GITHUB_OUTPUT
+          Write-Host "Versie: $version"
+
+      - name: IdleDash bouwen
+        shell: pwsh
+        env:
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          if (-not $env:GOOGLE_CLIENT_ID -or -not $env:GOOGLE_CLIENT_SECRET) {
+            Write-Host "::warning::De Google-secrets ontbreken. Deze versie heeft geen ingebouwde Google-sleutel."
+          }
+          dotnet publish IdleDash.csproj `
+            -c Release -r win-x64 --self-contained true `
+            -p:PublishSingleFile=true `
+            -p:IncludeNativeLibrariesForSelfExtract=true `
+            -p:EnableCompressionInSingleFile=true `
+            -p:DebugType=none `
+            "-p:Version=$env:VERSION" `
+            "-p:GoogleClientId=$env:GOOGLE_CLIENT_ID" `
+            "-p:GoogleClientSecret=$env:GOOGLE_CLIENT_SECRET" `
+            -o publish
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Installer maken
+        shell: pwsh
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          choco upgrade innosetup -y --no-progress
+          $iscc = Get-ChildItem "${env:ProgramFiles(x86)}\Inno Setup*\ISCC.exe", "$env:ProgramFiles\Inno Setup*\ISCC.exe" -ErrorAction SilentlyContinue |
+            Select-Object -First 1
+          if (-not $iscc) { throw "Inno Setup (ISCC.exe) niet gevonden." }
+          & $iscc.FullName "/DAppVersion=$env:VERSION" installer\IdleDash.iss
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Losse versie inpakken
+        shell: pwsh
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: Compress-Archive -Path publish\IdleDash.exe -DestinationPath "IdleDash-$env:VERSION-portable.zip"
+
+      - name: Bestanden bewaren (voor testen)
+        uses: actions/upload-artifact@v6
+        with:
+          name: IdleDash-${{ steps.version.outputs.version }}
+          path: |
+            installer/Output/*.exe
+            IdleDash-*-portable.zip
+
+      - name: Aan de release hangen
+        if: github.event_name == 'release'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ github.event.release.tag_name }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          $setup = (Get-Item installer\Output\*.exe).FullName
+          gh release upload "$env:TAG" $setup "IdleDash-$env:VERSION-portable.zip" --clobber
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

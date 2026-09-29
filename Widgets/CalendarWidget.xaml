@@ -1,0 +1,17 @@
+<w:WidgetBase x:Class="IdleDash.Widgets.CalendarWidget"
+              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+              xmlns:w="clr-namespace:IdleDash.Widgets">
+    <Grid ClipToBounds="True">
+        <!-- Afspraken, per dag gegroepeerd (wordt in de code gevuld) -->
+        <StackPanel x:Name="EventList"/>
+
+        <!-- Melding als er (nog) niets te tonen is -->
+        <StackPanel x:Name="MessagePanel" VerticalAlignment="Center" Visibility="Collapsed">
+            <TextBlock x:Name="MessageText" FontSize="16" TextWrapping="Wrap" LineHeight="23"
+                       Foreground="{StaticResource TextSecondaryBrush}"/>
+            <Button x:Name="MessageButton" Style="{StaticResource PillButton}" Content="Instellingen openen"
+                    HorizontalAlignment="Left" Margin="0,14,0,0" Click="MessageButton_Click"/>
+        </StackPanel>
+    </Grid>
+</w:WidgetBase>

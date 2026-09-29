@@ -1,0 +1,12 @@
+# Visual Studio en bouwresultaten
+bin/
+obj/
+.vs/
+*.user
+publish/
+installer/Output/
+
+# Voor de zekerheid: Google-sleutels en certificaten horen nooit op GitHub
+client_secret*.json
+google-sleutel.json
+*.pfx

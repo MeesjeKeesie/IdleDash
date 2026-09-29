@@ -1,0 +1,21 @@
+<w:WidgetBase x:Class="IdleDash.Widgets.ClockWidget"
+              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+              xmlns:w="clr-namespace:IdleDash.Widgets">
+    <!-- Viewbox: maak je de widget groter, dan schaalt de klok gewoon mee -->
+    <Viewbox Stretch="Uniform" HorizontalAlignment="Left" VerticalAlignment="Top">
+        <StackPanel Width="540">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock x:Name="TimeText" Text="00:00" FontSize="150" FontWeight="Light"
+                           Typography.NumeralAlignment="Tabular"/>
+                <!-- Seconden klein en hoog naast de tijd -->
+                <TextBlock x:Name="SecondsText" Text="00" FontSize="36" FontWeight="Light"
+                           Typography.NumeralAlignment="Tabular"
+                           Foreground="{StaticResource TextMutedBrush}"
+                           VerticalAlignment="Top" Margin="12,42,0,0"/>
+            </StackPanel>
+            <TextBlock x:Name="DateText" FontSize="30"
+                       Foreground="{StaticResource TextSecondaryBrush}" Margin="8,-14,0,0"/>
+        </StackPanel>
+    </Viewbox>
+</w:WidgetBase>

@@ -1,0 +1,28 @@
+<UserControl x:Class="IdleDash.Widgets.WidgetHost"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Grid>
+        <!-- De widget zelf. Geen kaartje eromheen: de inhoud zweeft vrij op de achtergrond -->
+        <ContentControl x:Name="ContentSlot" Margin="12" Focusable="False"/>
+
+        <!-- Bewerklaag: alleen zichtbaar in bewerkmodus. Hiermee sleep je de widget. -->
+        <Border x:Name="EditLayer" Background="#0DFFFFFF" CornerRadius="14" Cursor="SizeAll"
+                Visibility="Collapsed"
+                MouseLeftButtonDown="EditLayer_MouseLeftButtonDown"
+                MouseMove="EditLayer_MouseMove"
+                MouseLeftButtonUp="EditLayer_MouseLeftButtonUp">
+            <Grid>
+                <Rectangle RadiusX="14" RadiusY="14" Stroke="{StaticResource EditOutlineBrush}"
+                           StrokeThickness="1.5" StrokeDashArray="4 3" Opacity="0.8" IsHitTestVisible="False"/>
+
+                <Button Style="{StaticResource SmallIconButton}" Content="&#xE711;" ToolTip="Widget verwijderen"
+                        HorizontalAlignment="Right" VerticalAlignment="Top" Margin="8"
+                        Click="RemoveButton_Click"/>
+
+                <Thumb Width="24" Height="24" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="6"
+                       Cursor="SizeNWSE" Template="{StaticResource ResizeGripTemplate}" ToolTip="Formaat aanpassen"
+                       DragDelta="ResizeThumb_DragDelta" DragCompleted="ResizeThumb_DragCompleted"/>
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>
