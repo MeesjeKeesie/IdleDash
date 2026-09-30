@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -8,55 +7,92 @@ using IdleDash.Services;
 
 namespace IdleDash.Widgets;
 
-/// <summary>Je komende afspraken uit Google Agenda, gegroepeerd per dag.</summary>
+/// <summary>Je komende afspraken uit Google Agenda, Apple iCloud en agenda-links, gegroepeerd per dag.</summary>
 public partial class CalendarWidget : WidgetBase
 {
-    private static readonly CultureInfo Dutch = new("nl-NL");
-
-    private readonly AppSettings _settings;
     private readonly DispatcherTimer _timer = new() { Interval = TimeSpan.FromMinutes(5) };
+    private List<CalendarEvent> _events = new();
+    private List<string> _problems = new();
     private bool _loading;
     private bool _hasData;
+    private string _loadedKey = "";
 
     public CalendarWidget(AppSettings settings)
     {
         InitializeComponent();
-        _settings = settings;
         _timer.Tick += async (_, _) => await RefreshAsync();
     }
 
+    private int Days => Config.Get("days", Settings.CalendarDays);
+    private List<string> Hidden => Config.Get("hidden", new List<string>());
+
     protected override async void OnStart()
     {
-        GoogleService.StateChanged += OnGoogleStateChanged;
+        GoogleService.StateChanged += OnSourcesChanged;
         _timer.Start();
         await RefreshAsync();
     }
 
     protected override void OnStop()
     {
-        GoogleService.StateChanged -= OnGoogleStateChanged;
+        GoogleService.StateChanged -= OnSourcesChanged;
         _timer.Stop();
     }
 
-    private async void OnGoogleStateChanged() => await RefreshAsync();
+    private async void OnSourcesChanged() => await RefreshAsync();
+    public override async void OnSettingsChanged()
+    {
+        if (SourcesKey() == _loadedKey && _hasData)
+        {
+            Render();
+            return;
+        }
+        await RefreshAsync();
+    }
+
+    /// <summary>Alles waarvan de afspraken afhangen: keuzes van deze widget en de gekoppelde agenda's.</summary>
+    private string SourcesKey() => string.Join("|",
+        Days, string.Join(",", Hidden), Config.Get("showAdd", true), GoogleService.State,
+        Settings.Apple?.Email, Settings.Apple?.Calendars.Count, string.Join(",", Settings.IcsFeeds.Select(f => f.Url)));
+    public override void Refresh() => Render();
+
+    private bool HasAnySource =>
+        GoogleService.State is GoogleState.Connected or GoogleState.Connecting
+        || Settings.Apple is { Calendars.Count: > 0 }
+        || Settings.IcsFeeds.Count > 0;
 
     private async Task RefreshAsync()
     {
         if (_loading) return;
-        if (ShowProblemIfAny()) return;
+        if (!HasAnySource)
+        {
+            string text = GoogleService.DescribeProblem(Loc.T("je afspraken")) is string google && GoogleService.State == GoogleState.Expired
+                ? google
+                : Loc.T("Koppel een agenda in de instellingen: Google, Apple iCloud of een agenda-link.");
+            ShowMessage(text, showButton: true);
+            return;
+        }
+        if (GoogleService.State == GoogleState.Connecting && Settings.Apple == null && Settings.IcsFeeds.Count == 0)
+        {
+            ShowMessage(Loc.T("Verbinden met Google…"), showButton: false);
+            return;
+        }
 
         _loading = true;
         try
         {
-            var events = await GoogleService.GetEventsAsync(_settings.CalendarDays);
+            _loadedKey = SourcesKey();
+            var (events, problems) = await CalendarHub.GetEventsAsync(Days, Hidden);
+            _events = events;
+            _problems = problems;
             _hasData = true;
-            Render(events);
+            Render();
+            var calendars = await CalendarHub.GetCalendarsAsync();
+            AddButton.Visibility = Config.Get("showAdd", true) && calendars.Any(c => c.Writable) ? Visibility.Visible : Visibility.Collapsed;
         }
-        catch (Exception ex)
+        catch
         {
-            GoogleService.HandleError(ex);
-            if (!ShowProblemIfAny() && !_hasData)
-                ShowMessage("Je agenda ophalen lukt nu niet. Controleer je internetverbinding.", showButton: false);
+            if (!_hasData) ShowMessage(Loc.T("Je agenda ophalen lukt nu niet. Controleer je internetverbinding."), showButton: false);
         }
         finally
         {
@@ -64,44 +100,36 @@ public partial class CalendarWidget : WidgetBase
         }
     }
 
-    /// <summary>Toont een melding als de Google-koppeling niet werkt. Geeft true terug als dat zo is.</summary>
-    private bool ShowProblemIfAny()
-    {
-        string? problem = GoogleService.DescribeProblem("je afspraken");
-        if (problem == null) return false;
-        _hasData = false;
-        ShowMessage(problem, showButton: GoogleService.State != GoogleState.Connecting);
-        return true;
-    }
-
     private void ShowMessage(string text, bool showButton)
     {
         EventList.Children.Clear();
+        AddButton.Visibility = Visibility.Collapsed;
+        ProblemText.Text = "";
         MessageText.Text = text;
         MessageButton.Visibility = showButton ? Visibility.Visible : Visibility.Collapsed;
         MessagePanel.Visibility = Visibility.Visible;
     }
 
-    private void Render(List<CalendarEvent> events)
+    private void Render()
     {
+        if (!_hasData) return;
         var now = DateTime.Now;
-        var upcoming = events.Where(e => e.End > now).ToList();
+        var upcoming = _events.Where(e => e.End > now).ToList();
+        ProblemText.Text = _problems.Count > 0 ? Loc.T("Niet gelukt: {0}", string.Join(", ", _problems)) : "";
+
         if (upcoming.Count == 0)
         {
-            ShowMessage(_settings.CalendarDays == 1
-                ? "Geen afspraken meer vandaag."
-                : $"Geen afspraken de komende {_settings.CalendarDays} dagen.", showButton: false);
+            ShowMessage(Days == 1 ? Loc.T("Geen afspraken meer vandaag.") : Loc.T("Geen afspraken de komende {0} dagen.", Days), showButton: false);
+            ProblemText.Text = _problems.Count > 0 ? Loc.T("Niet gelukt: {0}", string.Join(", ", _problems)) : "";
             return;
         }
 
         MessagePanel.Visibility = Visibility.Collapsed;
         EventList.Children.Clear();
-
         DateTime? currentDay = null;
         foreach (var item in upcoming)
         {
-            // Een afspraak die gisteren begon en nog loopt, hoort bij vandaag
-            var day = item.Start.Date < now.Date ? now.Date : item.Start.Date;
+            var day = item.Start.Date < now.Date ? now.Date : item.Start.Date;   // gisteren begonnen en loopt nog: vandaag
             if (day != currentDay)
             {
                 currentDay = day;
@@ -113,27 +141,21 @@ public partial class CalendarWidget : WidgetBase
 
     private TextBlock CreateDayHeader(DateTime day, bool first)
     {
-        string text = day == DateTime.Today ? "Vandaag"
-            : day == DateTime.Today.AddDays(1) ? "Morgen"
-            : Capitalize(day.ToString("dddd d MMMM", Dutch));
-
-        return new TextBlock
-        {
-            Text = text,
-            FontSize = 14,
-            Foreground = (Brush)FindResource("TextSecondaryBrush"),
-            Margin = new Thickness(0, first ? 0 : 16, 0, 8),
-        };
+        string text = day == DateTime.Today ? Loc.T("Vandaag")
+            : day == DateTime.Today.AddDays(1) ? Loc.T("Morgen")
+            : Loc.Date(day);
+        var header = Text(text, 14, "TextSecondaryBrush");
+        header.Margin = new Thickness(0, first ? 0 : 16, 40, 8);
+        return header;
     }
 
     private Grid CreateEventRow(CalendarEvent item, DateTime day)
     {
         var row = new Grid { Margin = new Thickness(0, 0, 0, 9) };
         row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(18) });
-        row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(76) });
+        row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(Loc.Use12Hour ? 96 : 76) });
         row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
 
-        // Stipje in de kleur van de agenda
         var dot = new Border
         {
             Width = 8,
@@ -144,27 +166,15 @@ public partial class CalendarWidget : WidgetBase
             VerticalAlignment = VerticalAlignment.Center,
         };
 
-        string time = item.AllDay ? "Hele dag"
-            : item.Start.Date < day ? "tot " + item.End.ToString("HH:mm")
-            : item.Start.ToString("HH:mm");
-
-        var timeText = new TextBlock
-        {
-            Text = time,
-            FontSize = 15,
-            Foreground = (Brush)FindResource("TextSecondaryBrush"),
-            VerticalAlignment = VerticalAlignment.Center,
-        };
+        string time = item.AllDay ? Loc.T("Hele dag")
+            : item.Start.Date < day ? Loc.T("tot {0}", Loc.Time(item.End))
+            : Loc.Time(item.Start);
+        var timeText = Text(time, 15, "TextSecondaryBrush");
+        timeText.VerticalAlignment = VerticalAlignment.Center;
         Grid.SetColumn(timeText, 1);
 
-        var title = new TextBlock
-        {
-            Text = item.Title,
-            FontSize = 16,
-            TextTrimming = TextTrimming.CharacterEllipsis,
-            VerticalAlignment = VerticalAlignment.Center,
-            Foreground = (Brush)FindResource("TextPrimaryBrush"),
-        };
+        var title = Text(item.Title, 16);
+        title.VerticalAlignment = VerticalAlignment.Center;
         Grid.SetColumn(title, 2);
 
         row.Children.Add(dot);
@@ -173,26 +183,56 @@ public partial class CalendarWidget : WidgetBase
         return row;
     }
 
-    private Brush ParseColor(string? hex)
-    {
-        try
-        {
-            if (!string.IsNullOrEmpty(hex) && ColorConverter.ConvertFromString(hex) is Color color)
-            {
-                var brush = new SolidColorBrush(color);
-                brush.Freeze();
-                return brush;
-            }
-        }
-        catch
-        {
-            // onbekende kleur: standaardkleur gebruiken
-        }
-        return (Brush)FindResource("BarBrush");
-    }
-
-    private static string Capitalize(string text) =>
-        text.Length == 0 ? text : char.ToUpper(text[0], Dutch) + text[1..];
+    private Brush ParseColor(string? hex) =>
+        ThemeColors.Parse(hex) is { } c ? new SolidColorBrush(Color.FromArgb(c.A, c.R, c.G, c.B)) : Res("BarBrush");
 
     private void MessageButton_Click(object sender, RoutedEventArgs e) => App.Instance.ShowSettings();
+
+    private async void AddButton_Click(object sender, RoutedEventArgs e)
+    {
+        var calendars = (await CalendarHub.GetCalendarsAsync()).Where(c => c.Writable).ToList();
+        if (calendars.Count == 0) return;
+        if (new AddEventWindow(calendars).ShowDialog() == true) await RefreshAsync();
+    }
+
+    // ─────────────────────────── Instellingen ───────────────────────────
+
+    public override FrameworkElement? CreateSettings(Action saved)
+    {
+        var panel = new StackPanel();
+        panel.Children.Add(Ui.Section(Loc.T("Agenda")));
+        panel.Children.Add(Ui.Label(Loc.T("Afspraken tonen voor")));
+        panel.Children.Add(Ui.Combo(new[]
+        {
+            (Loc.T("Alleen vandaag"), 1), (Loc.T("3 dagen"), 3), (Loc.T("7 dagen"), 7), (Loc.T("14 dagen"), 14),
+        }, Days, v => { Config.Set("days", v); saved(); }));
+        panel.Children.Add(Ui.Switch(Loc.T("Knop om afspraken toe te voegen"), null, Config.Get("showAdd", true), v => { Config.Set("showAdd", v); saved(); }));
+
+        panel.Children.Add(Ui.Label(Loc.T("Welke agenda's")));
+        var list = new StackPanel();
+        var status = Ui.Hint(Loc.T("Agenda's ophalen…"));
+        panel.Children.Add(status);
+        panel.Children.Add(list);
+        panel.Children.Add(Ui.Hint(Loc.T("Google, Apple iCloud en agenda-links koppel je in de instellingen van IdleDash.")));
+
+        panel.Loaded += async (_, _) =>
+        {
+            var calendars = await CalendarHub.GetCalendarsAsync();
+            status.Text = calendars.Count == 0 ? Loc.T("Nog geen agenda gekoppeld.") : "";
+            var hidden = Hidden;
+            foreach (var calendar in calendars)
+            {
+                var box = Ui.Switch(calendar.Name, calendar.Source, !hidden.Contains(calendar.Key), on =>
+                {
+                    if (on) hidden.Remove(calendar.Key);
+                    else if (!hidden.Contains(calendar.Key)) hidden.Add(calendar.Key);
+                    Config.Set("hidden", hidden);
+                    saved();
+                });
+                box.Margin = new Thickness(0, 8, 0, 0);
+                list.Children.Add(box);
+            }
+        };
+        return panel;
+    }
 }

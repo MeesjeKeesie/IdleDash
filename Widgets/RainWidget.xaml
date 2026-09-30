@@ -13,19 +13,19 @@
 
             <TextBlock x:Name="SummaryText" Text="Buienradar laden…" FontSize="20" TextTrimming="CharacterEllipsis"/>
             <TextBlock x:Name="DetailText" Grid.Row="1" FontSize="13" Margin="0,2,0,0"
-                       Foreground="{StaticResource TextMutedBrush}"/>
+                       Foreground="{DynamicResource TextMutedBrush}"/>
 
             <!-- Staafjes: verwachte neerslag per 5 minuten -->
             <Grid Grid.Row="2" Margin="0,14,0,6">
-                <Border Height="1" VerticalAlignment="Bottom" Background="{StaticResource TrackBrush}"/>
+                <Border Height="1" VerticalAlignment="Bottom" Background="{DynamicResource TrackBrush}"/>
                 <UniformGrid x:Name="Bars" Rows="1"/>
             </Grid>
 
             <Grid Grid.Row="3">
-                <TextBlock x:Name="StartTimeText" FontSize="12" Foreground="{StaticResource TextMutedBrush}"/>
-                <TextBlock x:Name="MidTimeText" FontSize="12" Foreground="{StaticResource TextMutedBrush}"
+                <TextBlock x:Name="StartTimeText" FontSize="12" Foreground="{DynamicResource TextMutedBrush}"/>
+                <TextBlock x:Name="MidTimeText" FontSize="12" Foreground="{DynamicResource TextMutedBrush}"
                            HorizontalAlignment="Center"/>
-                <TextBlock x:Name="EndTimeText" FontSize="12" Foreground="{StaticResource TextMutedBrush}"
+                <TextBlock x:Name="EndTimeText" FontSize="12" Foreground="{DynamicResource TextMutedBrush}"
                            HorizontalAlignment="Right"/>
             </Grid>
         </Grid>

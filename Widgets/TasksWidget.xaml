@@ -11,10 +11,10 @@
         <!-- Nieuwe taak typen: Enter = toevoegen, Esc = wissen -->
         <Grid x:Name="NewTaskRow" Margin="0,0,0,14">
             <TextBlock Text="&#xE710;" FontFamily="{StaticResource IconFont}" FontSize="14"
-                       Foreground="{StaticResource TextMutedBrush}" Margin="4,0,0,0"
+                       Foreground="{DynamicResource TextMutedBrush}" Margin="4,0,0,0"
                        VerticalAlignment="Center" IsHitTestVisible="False"/>
             <TextBlock x:Name="NewTaskPlaceholder" Text="Nieuwe taak…" FontSize="16" Margin="32,0,0,0"
-                       Foreground="{StaticResource TextMutedBrush}" VerticalAlignment="Center" IsHitTestVisible="False"/>
+                       Foreground="{DynamicResource TextMutedBrush}" VerticalAlignment="Center" IsHitTestVisible="False"/>
             <TextBox x:Name="NewTaskBox" Style="{StaticResource InlineTextBox}" Margin="32,0,0,0"
                      KeyDown="NewTaskBox_KeyDown" TextChanged="NewTaskBox_TextChanged"/>
         </Grid>
@@ -25,7 +25,7 @@
         <!-- Melding als Google niet gekoppeld is -->
         <StackPanel x:Name="MessagePanel" Grid.RowSpan="2" VerticalAlignment="Center" Visibility="Collapsed">
             <TextBlock x:Name="MessageText" FontSize="16" TextWrapping="Wrap" LineHeight="23"
-                       Foreground="{StaticResource TextSecondaryBrush}"/>
+                       Foreground="{DynamicResource TextSecondaryBrush}"/>
             <Button x:Name="MessageButton" Style="{StaticResource PillButton}" Content="Instellingen openen"
                     HorizontalAlignment="Left" Margin="0,14,0,0" Click="MessageButton_Click"/>
         </StackPanel>

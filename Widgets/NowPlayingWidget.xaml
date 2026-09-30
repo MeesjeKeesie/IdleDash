@@ -10,23 +10,23 @@
             </Grid.ColumnDefinitions>
 
             <!-- Hoesje (afgeronde hoeken via de achtergrond van de Border) -->
-            <Border x:Name="Cover" Width="150" Height="150" CornerRadius="12" Background="#14FFFFFF">
+            <Border x:Name="Cover" Width="150" Height="150" CornerRadius="12" Background="{DynamicResource SubtleBrush}">
                 <TextBlock x:Name="CoverPlaceholder" Text="&#x266B;" FontFamily="{StaticResource SymbolFont}"
-                           FontSize="44" Foreground="{StaticResource TextMutedBrush}"
+                           FontSize="44" Foreground="{DynamicResource TextMutedBrush}"
                            HorizontalAlignment="Center" VerticalAlignment="Center"/>
             </Border>
 
             <StackPanel Grid.Column="1" Margin="22,2,0,0">
                 <TextBlock x:Name="TitleText" Text="Er speelt niets" FontSize="21" TextTrimming="CharacterEllipsis"/>
                 <TextBlock x:Name="ArtistText" FontSize="15" Margin="0,3,0,0" TextTrimming="CharacterEllipsis"
-                           Foreground="{StaticResource TextSecondaryBrush}"/>
+                           Foreground="{DynamicResource TextSecondaryBrush}"/>
 
                 <ProgressBar x:Name="TrackProgress" Style="{StaticResource SlimBar}" Height="4" Margin="0,16,0,0"/>
                 <Grid Margin="0,5,0,0">
                     <TextBlock x:Name="PositionText" FontSize="12" Typography.NumeralAlignment="Tabular"
-                               Foreground="{StaticResource TextMutedBrush}"/>
+                               Foreground="{DynamicResource TextMutedBrush}"/>
                     <TextBlock x:Name="DurationText" FontSize="12" Typography.NumeralAlignment="Tabular"
-                               Foreground="{StaticResource TextMutedBrush}" HorizontalAlignment="Right"/>
+                               Foreground="{DynamicResource TextMutedBrush}" HorizontalAlignment="Right"/>
                 </Grid>
 
                 <StackPanel x:Name="ButtonRow" Orientation="Horizontal" Margin="-10,4,0,0">

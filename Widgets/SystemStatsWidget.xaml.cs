@@ -5,6 +5,8 @@ using System.Windows.Media.Animation;
 using System.Windows.Threading;
 using IdleDash.Services;
 
+using IdleDash.Core;
+
 namespace IdleDash.Widgets;
 
 public partial class SystemStatsWidget : WidgetBase
@@ -40,7 +42,7 @@ public partial class SystemStatsWidget : WidgetBase
             SetBar(CpuBar, s.Cpu);
 
             GpuText.Text = s.Gpu is double gpu ? $"{gpu:0}%" : "–";
-            GpuTempText.Text = s.GpuTemp is double temp ? $"{temp:0}°C" : "";
+            GpuTempText.Text = s.GpuTemp is double temp ? Loc.Degrees(temp) : "";
             SetBar(GpuBar, s.Gpu);
 
             RamText.Text = s.RamTotalGb > 0 ? $"{s.RamUsedGb:0.0} / {s.RamTotalGb:0} GB" : "–";

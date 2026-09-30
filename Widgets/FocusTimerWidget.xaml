@@ -11,12 +11,12 @@
 
             <!-- Ring die leegloopt terwijl de tijd verstrijkt -->
             <Grid Width="240" Height="240" HorizontalAlignment="Center" VerticalAlignment="Top">
-                <Ellipse Stroke="{StaticResource TrackBrush}" StrokeThickness="6"/>
-                <Path x:Name="ProgressArc" Stroke="{StaticResource BarBrush}" StrokeThickness="6"
+                <Ellipse Stroke="{DynamicResource TrackBrush}" StrokeThickness="6"/>
+                <Path x:Name="ProgressArc" Stroke="{DynamicResource BarBrush}" StrokeThickness="6"
                       StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
                 <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
                     <TextBlock x:Name="ModeText" Text="Focus" FontSize="16" HorizontalAlignment="Center"
-                               Foreground="{StaticResource TextSecondaryBrush}"/>
+                               Foreground="{DynamicResource TextSecondaryBrush}"/>
                     <TextBlock x:Name="TimeText" Text="25:00" FontSize="56" FontWeight="Light"
                                HorizontalAlignment="Center" Typography.NumeralAlignment="Tabular"/>
                 </StackPanel>

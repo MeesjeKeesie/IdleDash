@@ -13,6 +13,16 @@
     <SolidColorBrush x:Key="TrackBrush" Color="#1AFFFFFF"/>
     <SolidColorBrush x:Key="EditOutlineBrush" Color="#8FB3E6"/>
 
+    <!-- Afgeleid van de tekstkleur, zodat hover-effecten ook op een lichte achtergrond werken.
+         Worden door ThemeManager vervangen als je een ander thema kiest. -->
+    <SolidColorBrush x:Key="HoverBrush" Color="#1FFFFFFF"/>
+    <SolidColorBrush x:Key="PressedBrush" Color="#33FFFFFF"/>
+    <SolidColorBrush x:Key="SubtleBrush" Color="#14FFFFFF"/>
+    <SolidColorBrush x:Key="CardBrush" Color="Transparent"/>
+    <SolidColorBrush x:Key="PanelBrush" Color="#F2161C28"/>
+    <SolidColorBrush x:Key="PanelBorderBrush" Color="#26FFFFFF"/>
+    <SolidColorBrush x:Key="AccentForegroundBrush" Color="#0C1422"/>
+
     <!-- ═══ Lettertypes ═══ -->
     <FontFamily x:Key="UiFont">Segoe UI</FontFamily>
     <FontFamily x:Key="IconFont">Segoe Fluent Icons, Segoe MDL2 Assets</FontFamily>
@@ -44,7 +54,7 @@
         <Setter Property="Height" Value="40"/>
         <Setter Property="FontFamily" Value="{StaticResource IconFont}"/>
         <Setter Property="FontSize" Value="16"/>
-        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
         <Setter Property="Background" Value="Transparent"/>
         <Setter Property="Cursor" Value="Hand"/>
         <Setter Property="Focusable" Value="False"/>
@@ -56,10 +66,10 @@
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="Bd" Property="Background" Value="#1FFFFFFF"/>
+                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource HoverBrush}"/>
                         </Trigger>
                         <Trigger Property="IsPressed" Value="True">
-                            <Setter TargetName="Bd" Property="Background" Value="#33FFFFFF"/>
+                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource PressedBrush}"/>
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="False">
                             <Setter Property="Opacity" Value="0.35"/>
@@ -74,7 +84,7 @@
         <Setter Property="Width" Value="30"/>
         <Setter Property="Height" Value="30"/>
         <Setter Property="FontSize" Value="11"/>
-        <Setter Property="Background" Value="#26FFFFFF"/>
+        <Setter Property="Background" Value="{DynamicResource HoverBrush}"/>
     </Style>
 
     <!-- Grote ronde knop (start/pauze van de focustimer) -->
@@ -83,8 +93,8 @@
         <Setter Property="Height" Value="56"/>
         <Setter Property="FontFamily" Value="{StaticResource IconFont}"/>
         <Setter Property="FontSize" Value="18"/>
-        <Setter Property="Foreground" Value="#0C1422"/>
-        <Setter Property="Background" Value="{StaticResource BarBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource AccentForegroundBrush}"/>
+        <Setter Property="Background" Value="{DynamicResource BarBrush}"/>
         <Setter Property="Cursor" Value="Hand"/>
         <Setter Property="Focusable" Value="False"/>
         <Setter Property="Template">
@@ -95,7 +105,7 @@
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="Bd" Property="Background" Value="#FFFFFF"/>
+                            <Setter TargetName="Bd" Property="Opacity" Value="0.85"/>
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -105,8 +115,8 @@
 
     <!-- Rustige tekstknop, bv. "Instellingen openen" -->
     <Style x:Key="PillButton" TargetType="Button">
-        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
-        <Setter Property="Background" Value="#1FFFFFFF"/>
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+        <Setter Property="Background" Value="{DynamicResource HoverBrush}"/>
         <Setter Property="Padding" Value="14,8"/>
         <Setter Property="FontSize" Value="14"/>
         <Setter Property="Cursor" Value="Hand"/>
@@ -120,7 +130,7 @@
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="Bd" Property="Background" Value="#33FFFFFF"/>
+                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource PressedBrush}"/>
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -130,7 +140,7 @@
 
     <!-- Hele regel klikbaar (nieuwskoppen) -->
     <Style x:Key="RowButton" TargetType="Button">
-        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
         <Setter Property="Background" Value="Transparent"/>
         <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
         <Setter Property="Padding" Value="8,7"/>
@@ -145,7 +155,7 @@
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="Bd" Property="Background" Value="#12FFFFFF"/>
+                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource SubtleBrush}"/>
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -163,15 +173,15 @@
             <Setter.Value>
                 <ControlTemplate TargetType="Button">
                     <Grid Background="Transparent">
-                        <Ellipse x:Name="Ring" Width="18" Height="18" Stroke="{StaticResource TextMutedBrush}"
+                        <Ellipse x:Name="Ring" Width="18" Height="18" Stroke="{DynamicResource TextMutedBrush}"
                                  StrokeThickness="1.5"/>
                         <TextBlock x:Name="Check" Text="&#xE73E;" FontFamily="{StaticResource IconFont}" FontSize="10"
-                                   Foreground="{StaticResource TextPrimaryBrush}" Opacity="0"
+                                   Foreground="{DynamicResource TextPrimaryBrush}" Opacity="0"
                                    HorizontalAlignment="Center" VerticalAlignment="Center"/>
                     </Grid>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="Ring" Property="Stroke" Value="{StaticResource TextPrimaryBrush}"/>
+                            <Setter TargetName="Ring" Property="Stroke" Value="{DynamicResource TextPrimaryBrush}"/>
                             <Setter TargetName="Check" Property="Opacity" Value="1"/>
                         </Trigger>
                     </ControlTemplate.Triggers>
@@ -181,7 +191,7 @@
     </Style>
 
     <Style x:Key="MenuButton" TargetType="Button">
-        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
         <Setter Property="Background" Value="Transparent"/>
         <Setter Property="HorizontalContentAlignment" Value="Left"/>
         <Setter Property="Padding" Value="12,9"/>
@@ -198,7 +208,7 @@
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="Bd" Property="Background" Value="#17FFFFFF"/>
+                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource HoverBrush}"/>
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -208,9 +218,9 @@
 
     <!-- Tekstveld zonder kader, met een lijntje eronder als je typt (nieuwe taak) -->
     <Style x:Key="InlineTextBox" TargetType="TextBox">
-        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
-        <Setter Property="CaretBrush" Value="{StaticResource TextPrimaryBrush}"/>
-        <Setter Property="SelectionBrush" Value="{StaticResource EditOutlineBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+        <Setter Property="CaretBrush" Value="{DynamicResource TextPrimaryBrush}"/>
+        <Setter Property="SelectionBrush" Value="{DynamicResource EditOutlineBrush}"/>
         <Setter Property="Background" Value="Transparent"/>
         <Setter Property="BorderThickness" Value="0"/>
         <Setter Property="FontSize" Value="16"/>
@@ -225,7 +235,7 @@
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsKeyboardFocused" Value="True">
-                            <Setter TargetName="Bd" Property="BorderBrush" Value="#33FFFFFF"/>
+                            <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource PressedBrush}"/>
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -238,12 +248,12 @@
         <Setter Property="Height" Value="5"/>
         <Setter Property="Minimum" Value="0"/>
         <Setter Property="Maximum" Value="100"/>
-        <Setter Property="Foreground" Value="{StaticResource BarBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource BarBrush}"/>
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="ProgressBar">
                     <Grid>
-                        <Border x:Name="PART_Track" CornerRadius="2.5" Background="{StaticResource TrackBrush}"/>
+                        <Border x:Name="PART_Track" CornerRadius="2.5" Background="{DynamicResource TrackBrush}"/>
                         <Border x:Name="PART_Indicator" CornerRadius="2.5" HorizontalAlignment="Left"
                                 Background="{TemplateBinding Foreground}"/>
                     </Grid>
@@ -255,7 +265,7 @@
     <!-- ═══ Hoekje rechtsonder om een widget groter/kleiner te maken ═══ -->
     <ControlTemplate x:Key="ResizeGripTemplate" TargetType="Thumb">
         <Grid Background="Transparent">
-            <Path Data="M 16,4 L 4,16 M 16,10 L 10,16" Stroke="{StaticResource EditOutlineBrush}"
+            <Path Data="M 16,4 L 4,16 M 16,10 L 10,16" Stroke="{DynamicResource EditOutlineBrush}"
                   StrokeThickness="1.6" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
         </Grid>
@@ -263,7 +273,7 @@
 
     <!-- ═══ Tooltips in dezelfde donkere stijl ═══ -->
     <Style TargetType="ToolTip">
-        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+        <Setter Property="Foreground" Value="#EEF1F6"/>
         <Setter Property="FontFamily" Value="{StaticResource UiFont}"/>
         <Setter Property="FontSize" Value="13"/>
         <Setter Property="HasDropShadow" Value="False"/>

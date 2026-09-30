@@ -14,19 +14,26 @@ public sealed class TrayIcon : IDisposable
     private const int CallbackMessage = 0x8001;   // WM_APP + 1: ons eigen berichtnummer
     private const int WM_LBUTTONUP = 0x0202;
     private const int WM_RBUTTONUP = 0x0205;
+    private const int NIN_BALLOONUSERCLICK = 0x0405;   // er is op een melding geklikt
     private const uint CmdSettings = 1;
     private const uint CmdPause = 2;
     private const uint CmdExit = 3;
+    private const uint CmdUpdate = 4;
 
     private readonly HwndSource _window;
     private readonly uint _taskbarCreatedMessage;
     private IntPtr _icon;
     private bool _ownsIcon;
     private bool _added;
+    private Action? _notificationClick;
 
     /// <summary>Voor het vinkje bij "Dashboard pauzeren".</summary>
     public bool Paused { get; set; }
 
+    /// <summary>Tekst voor een extra menu-item bovenaan (bv. "Bijwerken naar versie 1.2.0"), of null.</summary>
+    public string? UpdateMenuText { get; set; }
+
+    public event Action? UpdateRequested;
     public event Action? SettingsRequested;
     public event Action? PauseToggled;
     public event Action? ExitRequested;
@@ -44,9 +51,11 @@ public sealed class TrayIcon : IDisposable
         Add();
     }
 
-    public void ShowNotification(string title, string message)
+    /// <summary>Melding rechtsonder. onClick wordt uitgevoerd als je erop klikt.</summary>
+    public void ShowNotification(string title, string message, Action? onClick = null)
     {
         if (!_added) return;
+        _notificationClick = onClick;
         var data = CreateData(NativeMethods.NIF_INFO);
         data.szInfoTitle = title.Length > 63 ? title[..63] : title;
         data.szInfo = message.Length > 255 ? message[..255] : message;
@@ -81,6 +90,12 @@ public sealed class TrayIcon : IDisposable
             int mouse = (int)(lParam.ToInt64() & 0xFFFF);
             if (mouse == WM_LBUTTONUP) SettingsRequested?.Invoke();
             else if (mouse == WM_RBUTTONUP) ShowMenu();
+            else if (mouse == NIN_BALLOONUSERCLICK)
+            {
+                var action = _notificationClick;
+                _notificationClick = null;
+                action?.Invoke();
+            }
             handled = true;
         }
         else if (_taskbarCreatedMessage != 0 && msg == (int)_taskbarCreatedMessage)
@@ -93,11 +108,16 @@ public sealed class TrayIcon : IDisposable
     private void ShowMenu()
     {
         IntPtr menu = NativeMethods.CreatePopupMenu();
-        NativeMethods.AppendMenu(menu, NativeMethods.MF_STRING, new UIntPtr(CmdSettings), "Instellingen");
+        if (UpdateMenuText != null)
+        {
+            NativeMethods.AppendMenu(menu, NativeMethods.MF_STRING, new UIntPtr(CmdUpdate), UpdateMenuText);
+            NativeMethods.AppendMenu(menu, NativeMethods.MF_SEPARATOR, UIntPtr.Zero, null);
+        }
+        NativeMethods.AppendMenu(menu, NativeMethods.MF_STRING, new UIntPtr(CmdSettings), Loc.T("Instellingen"));
         NativeMethods.AppendMenu(menu, NativeMethods.MF_STRING | (Paused ? NativeMethods.MF_CHECKED : 0u),
-            new UIntPtr(CmdPause), "Dashboard pauzeren");
+            new UIntPtr(CmdPause), Loc.T("Dashboard pauzeren"));
         NativeMethods.AppendMenu(menu, NativeMethods.MF_SEPARATOR, UIntPtr.Zero, null);
-        NativeMethods.AppendMenu(menu, NativeMethods.MF_STRING, new UIntPtr(CmdExit), "IdleDash afsluiten");
+        NativeMethods.AppendMenu(menu, NativeMethods.MF_STRING, new UIntPtr(CmdExit), Loc.T("IdleDash afsluiten"));
         NativeMethods.SetMenuDefaultItem(menu, CmdSettings, 0);
 
         NativeMethods.GetCursorPos(out var point);
@@ -113,6 +133,7 @@ public sealed class TrayIcon : IDisposable
             case CmdSettings: SettingsRequested?.Invoke(); break;
             case CmdPause: PauseToggled?.Invoke(); break;
             case CmdExit: ExitRequested?.Invoke(); break;
+            case CmdUpdate: UpdateRequested?.Invoke(); break;
         }
     }
 

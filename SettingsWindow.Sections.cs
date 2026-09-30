@@ -1,0 +1,493 @@
+using System.IO;
+using System.Windows;
+using System.Windows.Controls;
+using IdleDash.Core;
+using IdleDash.Services;
+
+namespace IdleDash;
+
+/// <summary>De onderdelen van het instellingenscherm die in code gebouwd worden.</summary>
+public partial class SettingsWindow
+{
+    // ─────────────────────────── Taal en weergave ───────────────────────────
+
+    private void BuildLanguageSection()
+    {
+        void Changed()
+        {
+            _settings.NotifyChanged();   // het dashboard zet de nieuwe taal door; dit venster wordt dan opnieuw geopend
+        }
+
+        LanguagePanel.Children.Add(Ui.Columns(
+            (Loc.T("Taal"), Ui.Combo(new[]
+            {
+                (Loc.T("Automatisch (Windows)"), "auto"), ("Nederlands", "nl"), ("English", "en"),
+            }, _settings.Language, v => { _settings.Language = v; Changed(); }), "*"),
+            (Loc.T("Tijd"), Ui.Combo(new[]
+            {
+                (Loc.T("Automatisch"), "auto"), (Loc.T("24-uurs (14:30)"), "24"), (Loc.T("12-uurs (2:30 PM)"), "12"),
+            }, _settings.TimeFormat, v => { _settings.TimeFormat = v; Changed(); }), "*")));
+        LanguagePanel.Children.Add(Ui.Columns(
+            (Loc.T("Temperatuur"), Ui.Combo(new[]
+            {
+                (Loc.T("Automatisch"), "auto"), ("°C", "c"), ("°F", "f"),
+            }, _settings.TemperatureUnit, v => { _settings.TemperatureUnit = v; Changed(); }), "*"),
+            (Loc.T("Windsnelheid"), Ui.Combo(new[]
+            {
+                (Loc.T("Automatisch"), "auto"), (Loc.T("km/u"), "kmh"), ("mph", "mph"),
+            }, _settings.WindUnit, v => { _settings.WindUnit = v; Changed(); }), "*")));
+    }
+
+    // ─────────────────────────── Thema ───────────────────────────
+
+    private void BuildThemeSection()
+    {
+        ThemePanel.Children.Clear();
+        var theme = _settings.Theme;
+
+        void Apply(bool rebuild = false)
+        {
+            _settings.NotifyChanged();
+            if (rebuild) BuildThemeSection();
+        }
+
+        // Kant-en-klaar of eigen thema kiezen
+        var choices = ThemePresets.All.Select(t => (Loc.T(t.Name), "preset:" + t.Name))
+            .Concat(_settings.CustomThemes.Select(t => (t.Name, "custom:" + t.Name)))
+            .ToList();
+        string current = ThemePresets.IsPreset(theme.Name) ? "preset:" + theme.Name
+            : _settings.CustomThemes.Any(t => t.Name == theme.Name) ? "custom:" + theme.Name
+            : "";
+        if (current.Length == 0) choices.Insert(0, (Loc.T("Aangepast (niet opgeslagen)"), ""));
+        ThemePanel.Children.Add(Ui.Label(Loc.T("Thema van het dashboard")));
+        ThemePanel.Children.Add(Ui.Combo(choices, current, key =>
+        {
+            if (key.StartsWith("preset:")) _settings.Theme = ThemePresets.All.First(t => t.Name == key[7..]).Clone();
+            else if (key.StartsWith("custom:")) _settings.Theme = _settings.CustomThemes.First(t => t.Name == key[7..]).Clone();
+            else return;
+            Apply(rebuild: true);
+        }));
+
+        // Kleuren
+        void Edited()
+        {
+            // Een aangepast standaardthema wordt "aangepast"; een eigen thema pas je gewoon aan
+            if (ThemePresets.IsPreset(theme.Name)) theme.Name = Loc.T("Aangepast");
+            Apply();
+        }
+        ThemePanel.Children.Add(Ui.Label(Loc.T("Accentkleur (balkjes, knoppen)")));
+        ThemePanel.Children.Add(Ui.ColorPicker(theme.Accent, c => { theme.Accent = c; Edited(); }));
+        ThemePanel.Children.Add(Ui.Label(Loc.T("Tekstkleur")));
+        ThemePanel.Children.Add(Ui.ColorPicker(theme.Text, c => { theme.Text = c; Edited(); }));
+
+        // Achtergrond
+        ThemePanel.Children.Add(Ui.Label(Loc.T("Achtergrond")));
+        ThemePanel.Children.Add(Ui.Combo(new[]
+        {
+            (Loc.T("Lucht die meekleurt met de tijd"), "sky"), (Loc.T("Effen kleur"), "solid"),
+            (Loc.T("Kleurverloop"), "gradient"), (Loc.T("Eigen foto"), "photo"),
+        }, theme.Background, v => { theme.Background = v; Edited(); BuildThemeSection(); }));
+
+        if (theme.Background is "solid" or "gradient")
+        {
+            ThemePanel.Children.Add(Ui.Label(theme.Background == "solid" ? Loc.T("Kleur") : Loc.T("Kleur boven")));
+            ThemePanel.Children.Add(Ui.ColorPicker(theme.Color1, c => { theme.Color1 = c; Edited(); }));
+        }
+        if (theme.Background == "gradient")
+        {
+            ThemePanel.Children.Add(Ui.Label(Loc.T("Kleur onder")));
+            ThemePanel.Children.Add(Ui.ColorPicker(theme.Color2, c => { theme.Color2 = c; Edited(); }));
+        }
+        if (theme.Background == "photo")
+        {
+            var photoName = Ui.Hint(theme.Photo != null ? Path.GetFileName(theme.Photo) : Loc.T("Nog geen foto gekozen."));
+            ThemePanel.Children.Add(photoName);
+            ThemePanel.Children.Add(Ui.Row(Ui.Button(Loc.T("Foto kiezen…"), () =>
+            {
+                var dialog = new Microsoft.Win32.OpenFileDialog
+                {
+                    Title = Loc.T("Kies een foto voor de achtergrond"),
+                    Filter = Loc.T("Afbeeldingen") + "|*.jpg;*.jpeg;*.png;*.bmp;*.webp;*.heic",
+                };
+                if (dialog.ShowDialog(this) != true) return;
+                theme.Photo = dialog.FileName;
+                photoName.Text = Path.GetFileName(dialog.FileName);
+                Edited();
+            })));
+            ThemePanel.Children.Add(Ui.Label(Loc.T("Foto donkerder maken (voor leesbare tekst)")));
+            ThemePanel.Children.Add(Ui.Combo(new[] { (Loc.T("Niet"), 0), ("20%", 20), ("40%", 40), ("60%", 60) },
+                theme.PhotoDim, v => { theme.PhotoDim = v; Edited(); }));
+        }
+
+        ThemePanel.Children.Add(Ui.Label(Loc.T("Kaartje achter de widgets")));
+        ThemePanel.Children.Add(Ui.Combo(new[]
+        {
+            (Loc.T("Geen"), 0), (Loc.T("Licht"), 20), (Loc.T("Middel"), 40), (Loc.T("Stevig"), 60), (Loc.T("Heel stevig"), 85),
+        }, theme.CardOpacity, v => { theme.CardOpacity = v; Edited(); }));
+        ThemePanel.Children.Add(Ui.Hint(Loc.T("Handig bij een foto als achtergrond. Per widget kun je ook een eigen thema kiezen (tandwieltje in de bewerkmodus).")));
+
+        // Bewaren, delen en verwijderen
+        var name = new TextBox { Text = ThemePresets.IsPreset(theme.Name) ? "" : theme.Name, Margin = new Thickness(0, 4, 0, 0) };
+        ThemePanel.Children.Add(Ui.Label(Loc.T("Naam om dit thema te bewaren")));
+        ThemePanel.Children.Add(name);
+        var status = Ui.Hint("");
+        ThemePanel.Children.Add(Ui.Row(
+            Ui.Button(Loc.T("Bewaren als eigen thema"), () =>
+            {
+                string n = name.Text.Trim();
+                if (n.Length == 0 || ThemePresets.IsPreset(n))
+                {
+                    status.Text = Loc.T("Kies een eigen naam voor het thema.");
+                    return;
+                }
+                var copy = theme.Clone();
+                copy.Name = n;
+                _settings.CustomThemes.RemoveAll(t => t.Name == n);
+                _settings.CustomThemes.Add(copy);
+                _settings.Theme = copy.Clone();
+                Apply(rebuild: true);
+            }),
+            Ui.Button(Loc.T("Delen (exporteren)…"), () =>
+            {
+                var dialog = new Microsoft.Win32.SaveFileDialog
+                {
+                    FileName = (ThemePresets.IsPreset(theme.Name) ? "IdleDash-thema" : theme.Name) + ".json",
+                    Filter = Loc.T("IdleDash-thema") + " (*.json)|*.json",
+                };
+                if (dialog.ShowDialog(this) != true) return;
+                var export = theme.Clone();
+                export.Photo = null;   // een foto-pad van jouw pc werkt niet bij iemand anders
+                File.WriteAllText(dialog.FileName, AppSettings.ToJson(export));
+                status.Text = Loc.T("Opgeslagen. Stuur het bestand naar iemand die het kan importeren.");
+            }),
+            Ui.Button(Loc.T("Importeren…"), () =>
+            {
+                var dialog = new Microsoft.Win32.OpenFileDialog { Filter = Loc.T("IdleDash-thema") + " (*.json)|*.json" };
+                if (dialog.ShowDialog(this) != true) return;
+                try
+                {
+                    var imported = AppSettings.FromJson<ThemeSettings>(File.ReadAllText(dialog.FileName))
+                                   ?? throw new InvalidDataException();
+                    if (string.IsNullOrWhiteSpace(imported.Name) || ThemePresets.IsPreset(imported.Name))
+                        imported.Name = Path.GetFileNameWithoutExtension(dialog.FileName);
+                    _settings.CustomThemes.RemoveAll(t => t.Name == imported.Name);
+                    _settings.CustomThemes.Add(imported);
+                    _settings.Theme = imported.Clone();
+                    Apply(rebuild: true);
+                }
+                catch
+                {
+                    status.Text = Loc.T("Dit is geen geldig thema-bestand.");
+                }
+            })));
+        if (_settings.CustomThemes.Any(t => t.Name == theme.Name))
+        {
+            ThemePanel.Children.Add(Ui.Button(Loc.T("Dit eigen thema verwijderen"), () =>
+            {
+                _settings.CustomThemes.RemoveAll(t => t.Name == theme.Name);
+                _settings.Theme = ThemePresets.Sky();
+                Apply(rebuild: true);
+            }));
+        }
+        ThemePanel.Children.Add(status);
+    }
+
+    // ─────────────────────────── Apple iCloud ───────────────────────────
+
+    private void BuildAppleSection()
+    {
+        ApplePanel.Children.Clear();
+        var status = Ui.Hint("");
+
+        if (_settings.Apple is { } apple)
+        {
+            ApplePanel.Children.Add(new TextBlock { Text = Loc.T("Gekoppeld met {0}", apple.Email), Margin = new Thickness(0, 6, 0, 0) });
+            ApplePanel.Children.Add(Ui.Hint(apple.Calendars.Count == 0
+                ? Loc.T("Geen agenda's gevonden.")
+                : string.Join(", ", apple.Calendars.Select(c => c.Name))));
+            ApplePanel.Children.Add(Ui.Row(
+                Ui.Button(Loc.T("Agenda's vernieuwen"), async () =>
+                {
+                    status.Text = Loc.T("Bezig…");
+                    try
+                    {
+                        apple.Calendars = await CalDav.DiscoverAsync(CalDav.ICloudServer, apple.Email, Secrets.Unprotect(apple.Password));
+                        _settings.NotifyChanged();
+                        BuildAppleSection();
+                    }
+                    catch (UnauthorizedAccessException)
+                    {
+                        status.Text = Loc.T("Apple ID of app-specifiek wachtwoord klopt niet.");
+                    }
+                    catch
+                    {
+                        status.Text = Loc.T("iCloud is nu niet bereikbaar.");
+                    }
+                }),
+                Ui.Button(Loc.T("Ontkoppelen"), () =>
+                {
+                    _settings.Apple = null;
+                    _settings.NotifyChanged();
+                    BuildAppleSection();
+                })));
+            ApplePanel.Children.Add(status);
+            return;
+        }
+
+        ApplePanel.Children.Add(Ui.Hint(Loc.T("Je hebt een app-specifiek wachtwoord nodig (niet je gewone wachtwoord). Maak het aan op account.apple.com, onder Inloggen en beveiliging, App-specifieke wachtwoorden.")));
+        var email = new TextBox();
+        var password = new PasswordBox();
+        ApplePanel.Children.Add(Ui.Columns((Loc.T("Apple ID (e-mailadres)"), email, "*"), (Loc.T("App-specifiek wachtwoord"), password, "*")));
+        ApplePanel.Children.Add(Ui.Row(
+            Ui.Button(Loc.T("Koppelen"), async () =>
+            {
+                if (email.Text.Trim().Length < 3 || password.Password.Length < 4)
+                {
+                    status.Text = Loc.T("Vul je Apple ID en het app-specifieke wachtwoord in.");
+                    return;
+                }
+                status.Text = Loc.T("Verbinden met iCloud…");
+                try
+                {
+                    var calendars = await CalDav.DiscoverAsync(CalDav.ICloudServer, email.Text.Trim(), password.Password.Trim());
+                    _settings.Apple = new AppleCalendarAccount
+                    {
+                        Email = email.Text.Trim(),
+                        Password = Secrets.Protect(password.Password.Trim()),
+                        Calendars = calendars,
+                    };
+                    _settings.NotifyChanged();
+                    BuildAppleSection();
+                }
+                catch (UnauthorizedAccessException)
+                {
+                    status.Text = Loc.T("Apple ID of app-specifiek wachtwoord klopt niet.");
+                }
+                catch
+                {
+                    status.Text = Loc.T("iCloud is nu niet bereikbaar.");
+                }
+            }, accent: true),
+            Ui.Button(Loc.T("account.apple.com openen"), () => Browser.Open("https://account.apple.com"))));
+        ApplePanel.Children.Add(status);
+    }
+
+    // ─────────────────────────── Agenda-links (ICS) ───────────────────────────
+
+    private void BuildIcsSection()
+    {
+        IcsPanel.Children.Clear();
+        IcsPanel.Children.Add(Ui.Hint(Loc.T("Een gedeelde agenda-link (.ics of webcal://), bijvoorbeeld van Outlook, je gemeente (afvalkalender) of school. Alleen lezen.")));
+        foreach (var feed in _settings.IcsFeeds.ToList())
+        {
+            IcsPanel.Children.Add(Ui.RemovableRow(feed.Name, feed.Url, () =>
+            {
+                _settings.IcsFeeds.Remove(feed);
+                _settings.NotifyChanged();
+                BuildIcsSection();
+            }));
+        }
+        var name = new TextBox();
+        var url = new TextBox();
+        IcsPanel.Children.Add(Ui.Columns((Loc.T("Naam"), name, "*"), (Loc.T("Link"), url, "2*")));
+        var status = Ui.Hint("");
+        IcsPanel.Children.Add(Ui.Row(Ui.Button(Loc.T("Agenda-link toevoegen"), () =>
+        {
+            string link = url.Text.Trim();
+            bool valid = link.StartsWith("https://", StringComparison.OrdinalIgnoreCase)
+                         || link.StartsWith("http://", StringComparison.OrdinalIgnoreCase)
+                         || link.StartsWith("webcal://", StringComparison.OrdinalIgnoreCase);
+            if (!valid)
+            {
+                status.Text = Loc.T("Plak een link die begint met https:// of webcal://.");
+                return;
+            }
+            string[] colors = { "#8FB3E6", "#A8D5BA", "#FFD6A5", "#E57373", "#C792EA", "#F2A65A" };
+            _settings.IcsFeeds.Add(new IcsFeedSettings
+            {
+                Name = name.Text.Trim().Length > 0 ? name.Text.Trim() : Loc.T("Agenda"),
+                Url = link,
+                Color = colors[_settings.IcsFeeds.Count % colors.Length],
+            });
+            _settings.NotifyChanged();
+            BuildIcsSection();
+        })));
+        IcsPanel.Children.Add(status);
+    }
+
+    // ─────────────────────────── Smarthome ───────────────────────────
+
+    private void BuildSmartHomeSection()
+    {
+        SmartHomePanel.Children.Clear();
+        var home = _settings.SmartHome;
+
+        void Saved()
+        {
+            _settings.Save();
+            SmartHomeService.Configure(_settings);
+            BuildSmartHomeSection();
+        }
+
+        // Home Assistant
+        SmartHomePanel.Children.Add(Ui.Label("Home Assistant"));
+        var haStatus = Ui.Hint("");
+        if (!string.IsNullOrWhiteSpace(home.HomeAssistantUrl) && !string.IsNullOrEmpty(home.HomeAssistantToken))
+        {
+            SmartHomePanel.Children.Add(Ui.RemovableRow(Loc.T("Gekoppeld"), home.HomeAssistantUrl, () =>
+            {
+                home.HomeAssistantUrl = null;
+                home.HomeAssistantToken = null;
+                Saved();
+            }));
+        }
+        else
+        {
+            var url = new TextBox { Text = "http://homeassistant.local:8123" };
+            var token = new PasswordBox();
+            SmartHomePanel.Children.Add(Ui.Columns((Loc.T("Adres"), url, "*"), (Loc.T("Token"), token, "*")));
+            SmartHomePanel.Children.Add(Ui.Hint(Loc.T("Token maken: klik in Home Assistant linksonder op je naam, ga naar Beveiliging en maak een langlevend toegangstoken aan.")));
+            SmartHomePanel.Children.Add(Ui.Row(Ui.Button(Loc.T("Koppelen"), async () =>
+            {
+                haStatus.Text = Loc.T("Verbinden…");
+                try
+                {
+                    var provider = new HomeAssistantProvider(url.Text.Trim(), token.Password.Trim());
+                    if (!await provider.TestAsync())
+                    {
+                        haStatus.Text = Loc.T("Home Assistant weigert het token. Maak een nieuw token aan en probeer het opnieuw.");
+                        return;
+                    }
+                    home.HomeAssistantUrl = url.Text.Trim();
+                    home.HomeAssistantToken = Secrets.Protect(token.Password.Trim());
+                    Saved();
+                }
+                catch
+                {
+                    haStatus.Text = Loc.T("Home Assistant is niet bereikbaar op dit adres.");
+                }
+            }, accent: true)));
+        }
+        SmartHomePanel.Children.Add(haStatus);
+
+        // Philips Hue
+        SmartHomePanel.Children.Add(Ui.Label("Philips Hue"));
+        var hueStatus = Ui.Hint("");
+        if (!string.IsNullOrWhiteSpace(home.HueBridge) && !string.IsNullOrEmpty(home.HueUser))
+        {
+            SmartHomePanel.Children.Add(Ui.RemovableRow(Loc.T("Gekoppeld"), home.HueBridge, () =>
+            {
+                home.HueBridge = null;
+                home.HueUser = null;
+                Saved();
+            }));
+        }
+        else
+        {
+            var bridge = new TextBox { Width = 200, HorizontalAlignment = HorizontalAlignment.Left };
+            SmartHomePanel.Children.Add(Ui.Hint(Loc.T("Klik op Zoeken, druk dan op de ronde knop bovenop je Hue-bridge en klik binnen 30 seconden op Koppelen.")));
+            SmartHomePanel.Children.Add(Ui.Columns((Loc.T("IP-adres van de bridge"), bridge, "*")));
+            SmartHomePanel.Children.Add(Ui.Row(
+                Ui.Button(Loc.T("Zoeken"), async () =>
+                {
+                    hueStatus.Text = Loc.T("Zoeken…");
+                    var found = await HueProvider.DiscoverAsync();
+                    if (found.Count == 0)
+                    {
+                        hueStatus.Text = Loc.T("Geen bridge gevonden. Vul het IP-adres zelf in (staat in de Hue-app bij Instellingen, Hue Bridges).");
+                        return;
+                    }
+                    bridge.Text = found[0];
+                    hueStatus.Text = Loc.T("Gevonden. Druk nu op de knop van de bridge en klik op Koppelen.");
+                }),
+                Ui.Button(Loc.T("Koppelen"), async () =>
+                {
+                    if (bridge.Text.Trim().Length == 0) return;
+                    try
+                    {
+                        var (user, notPressed) = await HueProvider.PairAsync(bridge.Text.Trim());
+                        if (user == null)
+                        {
+                            hueStatus.Text = notPressed
+                                ? Loc.T("Druk eerst op de ronde knop van de bridge en klik daarna binnen 30 seconden op Koppelen.")
+                                : Loc.T("Koppelen lukte niet.");
+                            return;
+                        }
+                        home.HueBridge = bridge.Text.Trim();
+                        home.HueUser = Secrets.Protect(user);
+                        Saved();
+                    }
+                    catch
+                    {
+                        hueStatus.Text = Loc.T("De bridge is niet bereikbaar op dit adres.");
+                    }
+                }, accent: true)));
+        }
+        SmartHomePanel.Children.Add(hueStatus);
+
+        // Shelly
+        SmartHomePanel.Children.Add(Ui.Label("Shelly"));
+        foreach (string host in home.ShellyDevices.ToList())
+            SmartHomePanel.Children.Add(Ui.RemovableRow(host, null, () => { home.ShellyDevices.Remove(host); Saved(); }));
+        var shelly = new TextBox { Width = 200, HorizontalAlignment = HorizontalAlignment.Left };
+        var shellyStatus = Ui.Hint(Loc.T("IP-adres van je Shelly, te vinden in de Shelly-app bij de apparaatinformatie."));
+        SmartHomePanel.Children.Add(shelly);
+        SmartHomePanel.Children.Add(shellyStatus);
+        SmartHomePanel.Children.Add(Ui.Row(Ui.Button(Loc.T("Shelly toevoegen"), async () =>
+        {
+            string address = shelly.Text.Trim();
+            if (address.Length == 0 || home.ShellyDevices.Contains(address)) return;
+            shellyStatus.Text = Loc.T("Verbinden…");
+            var devices = await new ShellyProvider(new[] { address }).GetDevicesAsync(CancellationToken.None);
+            if (devices.Count == 0)
+            {
+                shellyStatus.Text = Loc.T("Geen Shelly gevonden op dit adres (of hij heeft een wachtwoord).");
+                return;
+            }
+            home.ShellyDevices.Add(address);
+            Saved();
+        })));
+
+        // Meldingen en veiligheid
+        SmartHomePanel.Children.Add(Ui.Label(Loc.T("Melding geven bij")));
+        var notifyList = new StackPanel();
+        SmartHomePanel.Children.Add(notifyList);
+        SmartHomePanel.Children.Add(Ui.Switch(Loc.T("Sloten, alarm en garagedeuren mogen bediend worden"),
+            Loc.T("Altijd met een bevestiging, want iedereen bij je scherm kan klikken."), home.AllowSensitive,
+            v => { home.AllowSensitive = v; _settings.Save(); SmartHomeService.Configure(_settings); }));
+
+        if (!SmartHomeService.HasAnySystem)
+        {
+            notifyList.Children.Add(Ui.Hint(Loc.T("Koppel eerst een systeem, dan kun je hier kiezen bij welke sensor (bv. de deurbel) je een melding krijgt.")));
+            return;
+        }
+        notifyList.Children.Add(Ui.Hint(Loc.T("Sensoren ophalen…")));
+        SmartHomePanel.Loaded += async (_, _) => await FillNotifyListAsync(notifyList);
+        if (SmartHomePanel.IsLoaded) _ = FillNotifyListAsync(notifyList);
+    }
+
+    private async Task FillNotifyListAsync(StackPanel list)
+    {
+        var (devices, problems) = await SmartHomeService.GetDevicesAsync(fresh: true);
+        var sensors = devices.Where(d => d.Kind is DeviceKind.Binary or DeviceKind.Event).ToList();
+        list.Children.Clear();
+        if (sensors.Count == 0)
+        {
+            list.Children.Add(Ui.Hint(problems.FirstOrDefault() ?? Loc.T("Geen sensoren gevonden.")));
+            return;
+        }
+        var notify = _settings.SmartHome.NotifyDevices;
+        foreach (var sensor in sensors)
+        {
+            var box = Ui.Switch(sensor.Name, sensor.Source, notify.Contains(sensor.Key), on =>
+            {
+                if (on && !notify.Contains(sensor.Key)) notify.Add(sensor.Key);
+                if (!on) notify.Remove(sensor.Key);
+                _settings.Save();
+                SmartHomeService.Configure(_settings);
+            });
+            box.Margin = new Thickness(0, 8, 0, 0);
+            list.Children.Add(box);
+        }
+    }
+}

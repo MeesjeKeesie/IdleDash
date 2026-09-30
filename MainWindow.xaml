@@ -8,13 +8,13 @@
         ShowActivated="False"
         WindowStartupLocation="Manual"
         FontFamily="{StaticResource UiFont}"
-        Foreground="{StaticResource TextPrimaryBrush}"
+        Foreground="{DynamicResource TextPrimaryBrush}"
         UseLayoutRounding="True"
         Loaded="Window_Loaded"
         MouseMove="Window_MouseMove"
         KeyDown="Window_KeyDown">
 
-    <!-- Achtergrond: kleurt langzaam mee met het tijdstip van de dag -->
+    <!-- Achtergrond "Lucht": kleurt langzaam mee met het tijdstip van de dag (andere thema's vervangen dit) -->
     <Window.Background>
         <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
             <GradientStop x:Name="SkyTop" Color="#15233A" Offset="0"/>
@@ -24,8 +24,12 @@
 
     <Grid x:Name="Root" Background="Transparent">
 
+        <!-- Eigen foto als achtergrond, met een donkere laag zodat tekst leesbaar blijft -->
+        <Image x:Name="BackgroundImage" Stretch="UniformToFill" Visibility="Collapsed" IsHitTestVisible="False"/>
+        <Border x:Name="BackgroundTint" Background="Black" Opacity="0" IsHitTestVisible="False"/>
+
         <!-- Zachte gloed bovenin, alsof het licht van de lucht komt -->
-        <Border IsHitTestVisible="False">
+        <Border x:Name="Glow" IsHitTestVisible="False">
             <Border.Background>
                 <RadialGradientBrush Center="0.3,-0.1" GradientOrigin="0.3,-0.1" RadiusX="0.9" RadiusY="0.8">
                     <GradientStop x:Name="GlowStart" Color="#552F5277" Offset="0"/>
@@ -47,10 +51,25 @@
         <!-- Nachtmodus: 's avonds een donkere laag over alles (beweeg de muis om even helder te maken) -->
         <Border x:Name="DimOverlay" Background="Black" Opacity="0" IsHitTestVisible="False"/>
 
+        <!-- Melding van het smarthome, bv. de deurbel -->
+        <Border x:Name="Toast" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,32,0,0"
+                Padding="22,14" CornerRadius="16" Background="{DynamicResource PanelBrush}"
+                BorderBrush="{DynamicResource PanelBorderBrush}" BorderThickness="1"
+                Opacity="0" IsHitTestVisible="False">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="&#xEA8F;" FontFamily="{StaticResource IconFont}" FontSize="22"
+                           Foreground="{DynamicResource BarBrush}" VerticalAlignment="Center" Margin="0,0,14,0"/>
+                <StackPanel>
+                    <TextBlock x:Name="ToastTitle" FontSize="20"/>
+                    <TextBlock x:Name="ToastText" FontSize="14" Foreground="{DynamicResource TextSecondaryBrush}"/>
+                </StackPanel>
+            </StackPanel>
+        </Border>
+
         <!-- Knoppen rechtsboven: verschijnen zodra je de muis beweegt -->
         <Border x:Name="Toolbar" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,24,24,0"
-                Padding="4" CornerRadius="12" Background="#14FFFFFF" BorderBrush="#1AFFFFFF"
-                BorderThickness="1" Opacity="0">
+                Padding="4" CornerRadius="12" Background="{DynamicResource SubtleBrush}"
+                BorderBrush="{DynamicResource PanelBorderBrush}" BorderThickness="1" Opacity="0">
             <StackPanel Orientation="Horizontal">
                 <Button x:Name="AddButton" Style="{StaticResource IconButton}" Content="&#xE710;"
                         ToolTip="Widget toevoegen" Click="AddButton_Click" Visibility="Collapsed"/>
@@ -66,8 +85,8 @@
         <!-- Lijstje met widgets om toe te voegen -->
         <Popup x:Name="AddPopup" PlacementTarget="{Binding ElementName=AddButton}" Placement="Bottom"
                StaysOpen="False" AllowsTransparency="True" VerticalOffset="10" PopupAnimation="Fade">
-            <Border Width="240" Padding="6" CornerRadius="12" Background="#F2161C28"
-                    BorderBrush="#26FFFFFF" BorderThickness="1"
+            <Border Width="250" Padding="6" CornerRadius="12" Background="{DynamicResource PanelBrush}"
+                    BorderBrush="{DynamicResource PanelBorderBrush}" BorderThickness="1"
                     TextElement.FontFamily="{StaticResource UiFont}">
                 <StackPanel x:Name="AddList"/>
             </Border>

@@ -43,6 +43,7 @@ public partial class FocusTimerWidget : WidgetBase
     }
 
     public override void OnRemoved() => _timer.Stop();
+    public override void Refresh() => UpdateView();
 
     private void StartButton_Click(object sender, RoutedEventArgs e)
     {
@@ -93,9 +94,9 @@ public partial class FocusTimerWidget : WidgetBase
 
         NativeMethods.MessageBeep(NativeMethods.MB_ICONASTERISK);
         if (focusDone)
-            App.Notify("Focus-sessie klaar", $"Tijd voor {_settings.BreakMinutes} minuten pauze.");
+            App.Notify(Loc.T("Focus-sessie klaar"), Loc.T("Tijd voor {0} minuten pauze.", _settings.BreakMinutes));
         else
-            App.Notify("Pauze voorbij", "Klaar voor de volgende focus-sessie?");
+            App.Notify(Loc.T("Pauze voorbij"), Loc.T("Klaar voor de volgende focus-sessie?"));
     }
 
     private void SwitchPhase()
@@ -120,10 +121,10 @@ public partial class FocusTimerWidget : WidgetBase
         int totalSeconds = (int)Math.Ceiling(left.TotalSeconds);
         TimeText.Text = $"{totalSeconds / 60:00}:{totalSeconds % 60:00}";
 
-        ModeText.Text = _isBreak ? "Pauze" : "Focus";
+        ModeText.Text = _isBreak ? Loc.T("Pauze") : Loc.T("Focus");
         StartButton.Content = _running ? "\uE769" : "\uE768";
-        StartButton.ToolTip = _running ? "Pauzeren" : (_started ? "Verder" : "Starten");
-        SkipButton.ToolTip = _isBreak ? "Naar focus" : "Naar pauze";
+        StartButton.ToolTip = _running ? Loc.T("Pauzeren") : (_started ? Loc.T("Verder") : Loc.T("Starten"));
+        SkipButton.ToolTip = _isBreak ? Loc.T("Naar focus") : Loc.T("Naar pauze");
 
         var color = (Brush)FindResource(_isBreak ? "BreakBrush" : "BarBrush");
         ProgressArc.Stroke = color;

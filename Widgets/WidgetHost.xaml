@@ -2,22 +2,28 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <Grid>
-        <!-- De widget zelf. Geen kaartje eromheen: de inhoud zweeft vrij op de achtergrond -->
+        <!-- Kaartje achter de widget (doorzichtig, tenzij het thema er een kleur aan geeft) -->
+        <Border x:Name="Card" CornerRadius="18" Margin="4" Background="{DynamicResource CardBrush}" IsHitTestVisible="False"/>
+
+        <!-- De widget zelf -->
         <ContentControl x:Name="ContentSlot" Margin="12" Focusable="False"/>
 
         <!-- Bewerklaag: alleen zichtbaar in bewerkmodus. Hiermee sleep je de widget. -->
-        <Border x:Name="EditLayer" Background="#0DFFFFFF" CornerRadius="14" Cursor="SizeAll"
+        <Border x:Name="EditLayer" Background="{DynamicResource SubtleBrush}" CornerRadius="14" Cursor="SizeAll"
                 Visibility="Collapsed"
                 MouseLeftButtonDown="EditLayer_MouseLeftButtonDown"
                 MouseMove="EditLayer_MouseMove"
                 MouseLeftButtonUp="EditLayer_MouseLeftButtonUp">
             <Grid>
-                <Rectangle RadiusX="14" RadiusY="14" Stroke="{StaticResource EditOutlineBrush}"
+                <Rectangle RadiusX="14" RadiusY="14" Stroke="{DynamicResource EditOutlineBrush}"
                            StrokeThickness="1.5" StrokeDashArray="4 3" Opacity="0.8" IsHitTestVisible="False"/>
 
-                <Button Style="{StaticResource SmallIconButton}" Content="&#xE711;" ToolTip="Widget verwijderen"
-                        HorizontalAlignment="Right" VerticalAlignment="Top" Margin="8"
-                        Click="RemoveButton_Click"/>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="8">
+                    <Button Style="{StaticResource SmallIconButton}" Content="&#xE713;" ToolTip="Widget-instellingen"
+                            Margin="0,0,6,0" Click="SettingsButton_Click"/>
+                    <Button Style="{StaticResource SmallIconButton}" Content="&#xE711;" ToolTip="Widget verwijderen"
+                            Click="RemoveButton_Click"/>
+                </StackPanel>
 
                 <Thumb Width="24" Height="24" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="6"
                        Cursor="SizeNWSE" Template="{StaticResource ResizeGripTemplate}" ToolTip="Formaat aanpassen"

@@ -3,15 +3,28 @@
               xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
               xmlns:w="clr-namespace:IdleDash.Widgets">
     <Grid ClipToBounds="True">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
         <!-- Afspraken, per dag gegroepeerd (wordt in de code gevuld) -->
         <StackPanel x:Name="EventList"/>
+
+        <!-- Afspraak toevoegen -->
+        <Button x:Name="AddButton" Style="{StaticResource IconButton}" Content="&#xE710;" ToolTip="Afspraak toevoegen"
+                HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-8,-8,0" Visibility="Collapsed"
+                Click="AddButton_Click"/>
 
         <!-- Melding als er (nog) niets te tonen is -->
         <StackPanel x:Name="MessagePanel" VerticalAlignment="Center" Visibility="Collapsed">
             <TextBlock x:Name="MessageText" FontSize="16" TextWrapping="Wrap" LineHeight="23"
-                       Foreground="{StaticResource TextSecondaryBrush}"/>
+                       Foreground="{DynamicResource TextSecondaryBrush}"/>
             <Button x:Name="MessageButton" Style="{StaticResource PillButton}" Content="Instellingen openen"
                     HorizontalAlignment="Left" Margin="0,14,0,0" Click="MessageButton_Click"/>
         </StackPanel>
+
+        <TextBlock x:Name="ProblemText" Grid.Row="1" FontSize="12" TextTrimming="CharacterEllipsis"
+                   Foreground="{DynamicResource TextMutedBrush}"/>
     </Grid>
 </w:WidgetBase>

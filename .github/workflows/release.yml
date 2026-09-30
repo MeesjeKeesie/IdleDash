@@ -75,6 +75,12 @@ jobs:
           & $iscc.FullName "/DAppVersion=$env:VERSION" installer\IdleDash.iss
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
+          # Controlecode (SHA-256) naast de installer: IdleDash controleert daarmee elke automatische update
+          $setup = Get-Item installer\Output\*.exe
+          $hash = (Get-FileHash $setup.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+          Set-Content -Path "$($setup.FullName).sha256" -Value "$hash  $($setup.Name)" -Encoding ascii -NoNewline
+          Write-Host "SHA-256: $hash"
+
       - name: Losse versie inpakken
         shell: pwsh
         env:
@@ -87,6 +93,7 @@ jobs:
           name: IdleDash-${{ steps.version.outputs.version }}
           path: |
             installer/Output/*.exe
+            installer/Output/*.sha256
             IdleDash-*-portable.zip
 
       - name: Aan de release hangen
@@ -99,5 +106,5 @@ jobs:
           VERSION: ${{ steps.version.outputs.version }}
         run: |
           $setup = (Get-Item installer\Output\*.exe).FullName
-          gh release upload "$env:TAG" $setup "IdleDash-$env:VERSION-portable.zip" --clobber
+          gh release upload "$env:TAG" $setup "$setup.sha256" "IdleDash-$env:VERSION-portable.zip" --clobber
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

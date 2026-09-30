@@ -4,8 +4,10 @@ using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
+using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using IdleDash.Core;
+using IdleDash.Services;
 using IdleDash.Widgets;
 
 namespace IdleDash;
@@ -25,6 +27,8 @@ public partial class MainWindow : Window
     private readonly Random _random = new();
 
     private MonitorInfo? _target;
+    private readonly Brush _skyBrush;
+    private string _backgroundKey = "";
     private bool _editMode;
     private bool _toolbarVisible;
     private bool _widgetsCreated;
@@ -41,6 +45,8 @@ public partial class MainWindow : Window
     public MainWindow(AppSettings settings)
     {
         InitializeComponent();
+        _skyBrush = Background;
+        Loc.Apply(this);
         _settings = settings;
         _settings.Changed += OnSettingsChanged;
 
@@ -69,11 +75,15 @@ public partial class MainWindow : Window
 
         // Luisteren naar Windows: schermen aangesloten, losgekoppeld of resolutie veranderd
         HwndSource.FromHwnd(_hwnd)?.AddHook(WndProc);
+        // Deurbel, beweging en andere smarthome-meldingen
+        SmartHomeService.Triggered += device => ShowToast(device.Name, device.Value ?? Loc.T("Melding"));
+
         Closed += (_, _) => Application.Current.Shutdown();
     }
 
     public void Start()
     {
+        ApplyBackground();
         FindTargetMonitor();
         UpdateSky();
         _minuteTimer.Start();
@@ -171,7 +181,102 @@ public partial class MainWindow : Window
             ShiftTransform.Y = 0;
         }
         UpdateNightMode();
-        foreach (var host in _hosts) host.Widget.OnSettingsChanged();
+
+        bool languageChanged = Loc.Configure(_settings);
+        ThemeManager.ApplyGlobal(_settings.Theme);
+        ApplyBackground();
+        if (languageChanged) ApplyLanguage();
+
+        foreach (var host in _hosts)
+        {
+            if (host.Config.ThemeName != null) host.ApplyTheme(ThemeManager.Resolve(_settings, host.Config.ThemeName));
+            host.Widget.OnSettingsChanged();
+            host.Widget.Refresh();
+        }
+    }
+
+    /// <summary>Andere taal of eenheden: alle teksten opnieuw.</summary>
+    private void ApplyLanguage()
+    {
+        Loc.Apply(this, recordNew: false);
+        AddList.Children.Clear();
+        foreach (var definition in WidgetCatalog.All) AddList.Children.Add(CreateMenuItem(definition));
+        foreach (var host in _hosts) Loc.Apply(host, recordNew: false);
+    }
+
+    // ─────────────────────────── Achtergrond ───────────────────────────
+
+    /// <summary>Achtergrond volgens het thema: lucht, effen kleur, kleurverloop of eigen foto.</summary>
+    private void ApplyBackground()
+    {
+        var theme = _settings.Theme;
+        string key = $"{theme.Background}|{theme.Color1}|{theme.Color2}|{theme.Photo}|{theme.PhotoDim}";
+        if (key == _backgroundKey) return;
+        _backgroundKey = key;
+
+        Glow.Visibility = theme.Background == "sky" ? Visibility.Visible : Visibility.Collapsed;
+        BackgroundImage.Visibility = Visibility.Collapsed;
+        BackgroundImage.Source = null;
+        BackgroundTint.Opacity = 0;
+
+        var color1 = ThemeManager.ToColor(theme.Color1, Color.FromRgb(0x15, 0x23, 0x3A));
+        var color2 = ThemeManager.ToColor(theme.Color2, color1);
+        switch (theme.Background)
+        {
+            case "solid":
+                Background = new SolidColorBrush(color1);
+                break;
+            case "gradient":
+                Background = new LinearGradientBrush(color1, color2, 90);
+                break;
+            case "photo" when theme.Photo != null && System.IO.File.Exists(theme.Photo):
+                try
+                {
+                    using var file = System.IO.File.OpenRead(theme.Photo);   // ook met # of % in de naam
+                    var image = new BitmapImage();
+                    image.BeginInit();
+                    image.StreamSource = file;
+                    image.CacheOption = BitmapCacheOption.OnLoad;
+                    image.DecodePixelWidth = 2560;
+                    image.EndInit();
+                    image.Freeze();
+                    BackgroundImage.Source = image;
+                    BackgroundImage.Visibility = Visibility.Visible;
+                    BackgroundTint.Opacity = Math.Clamp(theme.PhotoDim, 0, 90) / 100.0;
+                    Background = Brushes.Black;
+                }
+                catch
+                {
+                    Background = _skyBrush;
+                    Glow.Visibility = Visibility.Visible;
+                }
+                break;
+            default:
+                Background = _skyBrush;
+                Glow.Visibility = Visibility.Visible;
+                UpdateSky();
+                break;
+        }
+    }
+
+    /// <summary>Melding bovenin het dashboard (bv. "Voordeur: Beweging"). Verdwijnt na 12 seconden.</summary>
+    private void ShowToast(string title, string text)
+    {
+        App.Notify(title, text);
+        ToastTitle.Text = title;
+        ToastText.Text = text;
+        var animation = new DoubleAnimationUsingKeyFrames();
+        animation.KeyFrames.Add(new LinearDoubleKeyFrame(1, KeyTime.FromTimeSpan(TimeSpan.FromSeconds(0.3))));
+        animation.KeyFrames.Add(new LinearDoubleKeyFrame(1, KeyTime.FromTimeSpan(TimeSpan.FromSeconds(12))));
+        animation.KeyFrames.Add(new LinearDoubleKeyFrame(0, KeyTime.FromTimeSpan(TimeSpan.FromSeconds(13))));
+        Toast.BeginAnimation(OpacityProperty, animation);
+        if (IsVisible)
+        {
+            _awake = true;   // nachtmodus even uit, zodat je de melding ziet
+            _wakeTimer.Stop();
+            _wakeTimer.Start();
+            UpdateNightMode();
+        }
     }
 
     // ─────────────────────────── Nachtmodus ───────────────────────────
@@ -296,7 +401,9 @@ public partial class MainWindow : Window
         config.Y = Math.Clamp(config.Y, 0, Math.Max(0, WidgetCanvas.ActualHeight - config.Height));
 
         var widget = definition.Create(_settings);
-        var host = new WidgetHost(config, widget, GridSize);
+        var host = new WidgetHost(config, widget, GridSize, _settings);
+        host.SettingsRequested += (_, _) => OpenWidgetSettings(host);
+        Loc.Apply(host);
         host.LayoutChanged += (_, _) => _settings.Save();
         host.RemoveRequested += (_, _) => RemoveHost(host);
         host.SetEditMode(_editMode);
@@ -344,7 +451,7 @@ public partial class MainWindow : Window
             VerticalAlignment = VerticalAlignment.Center,
             Foreground = (Brush)FindResource("TextSecondaryBrush"),
         });
-        row.Children.Add(new TextBlock { Text = definition.Name, VerticalAlignment = VerticalAlignment.Center });
+        row.Children.Add(new TextBlock { Text = Loc.T(definition.Name), VerticalAlignment = VerticalAlignment.Center });
 
         var button = new Button { Content = row, Style = (Style)FindResource("MenuButton") };
         button.Click += (_, _) =>
@@ -435,8 +542,15 @@ public partial class MainWindow : Window
         }
     }
 
+    private void OpenWidgetSettings(WidgetHost host)
+    {
+        string name = Loc.T(WidgetCatalog.Find(host.Config.Type)?.Name ?? host.Config.Type);
+        new WidgetSettingsWindow(host, _settings, name).Show();
+    }
+
     private void UpdateSky()
     {
+        if (_settings.Theme.Background != "sky") return;
         var sky = SkyPalette.At(DateTime.Now);
         SkyTop.Color = sky.Top;
         SkyBottom.Color = sky.Bottom;

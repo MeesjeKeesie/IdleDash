@@ -11,11 +11,11 @@
                 <!-- Seconden klein en hoog naast de tijd -->
                 <TextBlock x:Name="SecondsText" Text="00" FontSize="36" FontWeight="Light"
                            Typography.NumeralAlignment="Tabular"
-                           Foreground="{StaticResource TextMutedBrush}"
+                           Foreground="{DynamicResource TextMutedBrush}"
                            VerticalAlignment="Top" Margin="12,42,0,0"/>
             </StackPanel>
             <TextBlock x:Name="DateText" FontSize="30"
-                       Foreground="{StaticResource TextSecondaryBrush}" Margin="8,-14,0,0"/>
+                       Foreground="{DynamicResource TextSecondaryBrush}" Margin="8,-14,0,0"/>
         </StackPanel>
     </Viewbox>
 </w:WidgetBase>

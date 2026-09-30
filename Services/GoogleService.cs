@@ -15,7 +15,6 @@ using GTaskList = Google.Apis.Tasks.v1.Data.TaskList;
 
 namespace IdleDash.Services;
 
-public record CalendarEvent(string Title, DateTime Start, DateTime End, bool AllDay, string? Color);
 public record TaskItem(string Id, string Title, DateTime? Due, bool IsSubtask);
 public record TaskListInfo(string Id, string Title);
 
@@ -34,7 +33,8 @@ public static class GoogleService
 {
     private static readonly string[] Scopes =
     {
-        CalendarService.Scope.CalendarReadonly,   // agenda alleen lezen
+        CalendarService.Scope.CalendarReadonly,   // agenda's lezen
+        CalendarService.Scope.CalendarEvents,     // afspraken toevoegen (nieuw in 1.2.0)
         TasksService.Scope.Tasks,                 // taken lezen, afvinken en toevoegen
     };
 
@@ -62,6 +62,8 @@ public static class GoogleService
     public static bool HasOwnKey => File.Exists(KeyPath);
 
     public static bool HasKey => HasOwnKey || HasBuiltInKey;
+
+    public static bool IsConnected => State == GoogleState.Connected;
 
     // ─────────────────────────── Koppelen ───────────────────────────
 
@@ -251,9 +253,9 @@ public static class GoogleService
     /// <summary>Tekst voor een widget als de koppeling (nog) niet werkt, of null als alles in orde is.</summary>
     public static string? DescribeProblem(string what) => State switch
     {
-        GoogleState.NoKey or GoogleState.NotConnected => $"Koppel je Google-account in de instellingen om hier {what} te zien.",
-        GoogleState.Expired => "Je Google-koppeling is verlopen. Koppel opnieuw in de instellingen.",
-        GoogleState.Connecting => "Verbinden met Google…",
+        GoogleState.NoKey or GoogleState.NotConnected => Loc.T("Koppel je Google-account in de instellingen om hier {0} te zien.", what),
+        GoogleState.Expired => Loc.T("Je Google-koppeling is verlopen. Koppel opnieuw in de instellingen."),
+        GoogleState.Connecting => Loc.T("Verbinden met Google…"),
         _ => null,
     };
 
@@ -285,25 +287,39 @@ public static class GoogleService
 
     // ─────────────────────────── Agenda ───────────────────────────
 
-    public static async Task<List<CalendarEvent>> GetEventsAsync(int days)
+    /// <summary>Heeft de koppeling toestemming om afspraken toe te voegen? (Koppelingen van voor 1.2.0 nog niet.)</summary>
+    public static bool CanWriteCalendar =>
+        _credential?.Token?.Scope?.Contains("calendar.events", StringComparison.Ordinal) == true;
+
+    /// <summary>Je agenda's in Google Agenda (alle die je hebt aangevinkt).</summary>
+    public static async Task<List<CalendarInfo>> GetCalendarsAsync()
     {
-        var calendar = _calendar ?? throw new InvalidOperationException("Niet gekoppeld met Google.");
-        var calendarList = await calendar.CalendarList.List().ExecuteAsync();
-        var from = DateTimeOffset.Now;
-        var until = new DateTimeOffset(DateTime.Today.AddDays(days));
+        var calendar = _calendar ?? throw new InvalidOperationException(Loc.T("Niet gekoppeld met Google."));
+        var list = await calendar.CalendarList.List().ExecuteAsync();
+        return (list.Items ?? new List<CalendarListEntry>())
+            .Where(c => c.Selected == true || c.Primary == true)
+            .Select(c => new CalendarInfo(
+                "google:" + c.Id,
+                string.IsNullOrWhiteSpace(c.SummaryOverride) ? c.Summary ?? c.Id : c.SummaryOverride,
+                "Google",
+                c.BackgroundColor,
+                CanWriteCalendar && c.AccessRole is "owner" or "writer"))
+            .ToList();
+    }
+
+    public static async Task<List<CalendarEvent>> GetEventsAsync(IEnumerable<CalendarInfo> calendars, DateTime from, DateTime until)
+    {
+        var calendar = _calendar ?? throw new InvalidOperationException(Loc.T("Niet gekoppeld met Google."));
         var result = new List<CalendarEvent>();
 
-        // Alle agenda's die je in Google Agenda hebt aangevinkt
-        foreach (var entry in calendarList.Items ?? new List<CalendarListEntry>())
+        foreach (var info in calendars)
         {
-            if (entry.Selected != true && entry.Primary != true) continue;
-
-            var request = calendar.Events.List(entry.Id);
-            request.TimeMinDateTimeOffset = from;
-            request.TimeMaxDateTimeOffset = until;
+            var request = calendar.Events.List(info.Key["google:".Length..]);
+            request.TimeMinDateTimeOffset = new DateTimeOffset(from);
+            request.TimeMaxDateTimeOffset = new DateTimeOffset(until);
             request.SingleEvents = true;   // herhalende afspraken als losse afspraken
             request.OrderBy = EventsResource.ListRequest.OrderByEnum.StartTime;
-            request.MaxResults = 50;
+            request.MaxResults = 100;
             var events = await request.ExecuteAsync();
 
             foreach (var item in events.Items ?? new List<Event>())
@@ -313,16 +329,27 @@ public static class GoogleService
                 if (start == null) continue;
                 DateTime end = ParseEventTime(item.End) ?? start.Value;
                 bool allDay = !string.IsNullOrEmpty(item.Start?.Date);
-                string title = string.IsNullOrWhiteSpace(item.Summary) ? "(zonder titel)" : item.Summary.Trim();
-                result.Add(new CalendarEvent(title, start.Value, end, allDay, entry.BackgroundColor));
+                string title = string.IsNullOrWhiteSpace(item.Summary) ? Loc.T("(zonder titel)") : item.Summary.Trim();
+                result.Add(new CalendarEvent(title, start.Value, end, allDay, info.Color, info.Key));
             }
         }
+        return result;
+    }
 
-        return result
-            .OrderBy(e => e.Start.Date)
-            .ThenBy(e => e.AllDay ? 0 : 1)   // hele-dag-afspraken bovenaan de dag
-            .ThenBy(e => e.Start)
-            .ToList();
+    public static async Task AddEventAsync(string calendarId, string title, DateTime start, DateTime end, bool allDay)
+    {
+        var calendar = _calendar ?? throw new InvalidOperationException(Loc.T("Niet gekoppeld met Google."));
+        var item = new Event
+        {
+            Summary = title,
+            Start = allDay
+                ? new EventDateTime { Date = start.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) }
+                : new EventDateTime { DateTimeDateTimeOffset = new DateTimeOffset(start) },
+            End = allDay
+                ? new EventDateTime { Date = end.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) }
+                : new EventDateTime { DateTimeDateTimeOffset = new DateTimeOffset(end) },
+        };
+        await calendar.Events.Insert(item, calendarId).ExecuteAsync();
     }
 
     private static DateTime? ParseEventTime(EventDateTime? time)
@@ -344,17 +371,17 @@ public static class GoogleService
 
     public static async Task<List<TaskListInfo>> GetTaskListsAsync()
     {
-        var tasks = _tasks ?? throw new InvalidOperationException("Niet gekoppeld met Google.");
+        var tasks = _tasks ?? throw new InvalidOperationException(Loc.T("Niet gekoppeld met Google."));
         var lists = await tasks.Tasklists.List().ExecuteAsync();
         return (lists.Items ?? new List<GTaskList>())
-            .Select(list => new TaskListInfo(list.Id, list.Title ?? "Takenlijst"))
+            .Select(list => new TaskListInfo(list.Id, list.Title ?? Loc.T("Takenlijst")))
             .ToList();
     }
 
     /// <summary>Open taken uit een lijst (null = je eerste lijst), hoofdtaken met hun subtaken eronder.</summary>
     public static async Task<(string ListId, List<TaskItem> Items)> GetTasksAsync(string? listId)
     {
-        var tasks = _tasks ?? throw new InvalidOperationException("Niet gekoppeld met Google.");
+        var tasks = _tasks ?? throw new InvalidOperationException(Loc.T("Niet gekoppeld met Google."));
 
         if (string.IsNullOrEmpty(listId))
         {
@@ -382,13 +409,13 @@ public static class GoogleService
 
     public static async Task CompleteTaskAsync(string listId, string taskId)
     {
-        var tasks = _tasks ?? throw new InvalidOperationException("Niet gekoppeld met Google.");
+        var tasks = _tasks ?? throw new InvalidOperationException(Loc.T("Niet gekoppeld met Google."));
         await tasks.Tasks.Patch(new GTask { Status = "completed" }, listId, taskId).ExecuteAsync();
     }
 
     public static async Task AddTaskAsync(string listId, string title)
     {
-        var tasks = _tasks ?? throw new InvalidOperationException("Niet gekoppeld met Google.");
+        var tasks = _tasks ?? throw new InvalidOperationException(Loc.T("Niet gekoppeld met Google."));
         await tasks.Tasks.Insert(new GTask { Title = title }, listId).ExecuteAsync();
     }
 
@@ -399,7 +426,7 @@ public static class GoogleService
             && DateTimeOffset.TryParse(task.Due, CultureInfo.InvariantCulture, DateTimeStyles.None, out var date))
             due = date.UtcDateTime.Date;   // Google bewaart alleen de datum (als middernacht UTC)
 
-        string title = string.IsNullOrWhiteSpace(task.Title) ? "(zonder titel)" : task.Title.Trim();
+        string title = string.IsNullOrWhiteSpace(task.Title) ? Loc.T("(zonder titel)") : task.Title.Trim();
         return new TaskItem(task.Id, title, due, isSubtask);
     }
 }

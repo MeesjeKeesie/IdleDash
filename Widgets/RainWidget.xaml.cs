@@ -17,6 +17,7 @@ public partial class RainWidget : WidgetBase
     private DateTime _lastUpdate = DateTime.MinValue;
     private double _latitude;
     private double _longitude;
+    private List<RainPoint>? _points;
 
     public RainWidget(AppSettings settings)
     {
@@ -51,8 +52,8 @@ public partial class RainWidget : WidgetBase
         {
             if (_lastUpdate == DateTime.MinValue)
             {
-                SummaryText.Text = "Geen regendata";
-                DetailText.Text = "Buienradar werkt alleen voor Nederland en België.";
+                SummaryText.Text = Loc.T("Geen regendata");
+                DetailText.Text = Loc.T("Controleer je internetverbinding.");
                 Bars.Children.Clear();
                 StartTimeText.Text = MidTimeText.Text = EndTimeText.Text = "";
             }
@@ -60,12 +61,21 @@ public partial class RainWidget : WidgetBase
         }
 
         _lastUpdate = DateTime.Now;
+        _points = points;
+        Render();
+    }
+
+    public override void Refresh() => Render();
+
+    private void Render()
+    {
+        if (_points is not { Count: > 0 } points) return;
         SummaryText.Text = RainService.Summarize(points);
-        DetailText.Text = $"{_settings.WeatherPlace}, bron: Buienradar";
+        DetailText.Text = Loc.T("{0}, bron: {1}", _settings.WeatherPlace, RainService.SourceName(_latitude, _longitude));
         DrawBars(points);
-        StartTimeText.Text = "Nu";
-        MidTimeText.Text = points[points.Count / 2].Time;
-        EndTimeText.Text = points[points.Count - 1].Time;
+        StartTimeText.Text = Loc.T("Nu");
+        MidTimeText.Text = RainService.TimeText(points[points.Count / 2].Time);
+        EndTimeText.Text = RainService.TimeText(points[points.Count - 1].Time);
     }
 
     private void DrawBars(List<RainPoint> points)

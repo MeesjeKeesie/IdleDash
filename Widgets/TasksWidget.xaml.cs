@@ -13,12 +13,15 @@ namespace IdleDash.Widgets;
 /// <summary>Je open taken uit Google Taken: afvinken en nieuwe taken toevoegen kan direct vanaf het dashboard.</summary>
 public partial class TasksWidget : WidgetBase
 {
-    private static readonly CultureInfo Dutch = new("nl-NL");
 
     private readonly AppSettings _settings;
     private readonly DispatcherTimer _timer = new() { Interval = TimeSpan.FromMinutes(3) };
     private string _listId = "";
     private string? _loadedListSetting;
+    private List<TaskItem>? _items;
+
+    /// <summary>Takenlijst van deze widget (uit 1.0/1.1: de lijst uit de algemene instellingen).</summary>
+    private string? ListSetting => Config.Get<string?>("list", _settings.GoogleTaskListId);
     private bool _loading;
     private bool _hasData;
 
@@ -45,7 +48,7 @@ public partial class TasksWidget : WidgetBase
     public override async void OnSettingsChanged()
     {
         // Andere takenlijst gekozen in de instellingen
-        if (IsRunning && _settings.GoogleTaskListId != _loadedListSetting) await RefreshAsync();
+        if (IsRunning && ListSetting != _loadedListSetting) await RefreshAsync();
     }
 
     private async void OnGoogleStateChanged() => await RefreshAsync();
@@ -58,17 +61,18 @@ public partial class TasksWidget : WidgetBase
         _loading = true;
         try
         {
-            _loadedListSetting = _settings.GoogleTaskListId;
-            var (listId, items) = await GoogleService.GetTasksAsync(_settings.GoogleTaskListId);
+            _loadedListSetting = ListSetting;
+            var (listId, items) = await GoogleService.GetTasksAsync(ListSetting);
             _listId = listId;
             _hasData = true;
+            _items = items;
             Render(items);
         }
         catch (Exception ex)
         {
             GoogleService.HandleError(ex);
             if (!ShowProblemIfAny() && !_hasData)
-                ShowMessage("Je taken ophalen lukt nu niet. Controleer je internetverbinding.", showButton: false);
+                ShowMessage(Loc.T("Je taken ophalen lukt nu niet. Controleer je internetverbinding."), showButton: false);
         }
         finally
         {
@@ -78,7 +82,7 @@ public partial class TasksWidget : WidgetBase
 
     private bool ShowProblemIfAny()
     {
-        string? problem = GoogleService.DescribeProblem("je taken");
+        string? problem = GoogleService.DescribeProblem(Loc.T("je taken"));
         if (problem == null) return false;
         _hasData = false;
         ShowMessage(problem, showButton: GoogleService.State != GoogleState.Connecting);
@@ -104,7 +108,7 @@ public partial class TasksWidget : WidgetBase
         {
             TaskList.Children.Add(new TextBlock
             {
-                Text = "Geen open taken.",
+                Text = Loc.T("Geen open taken."),
                 FontSize = 16,
                 Foreground = (Brush)FindResource("TextSecondaryBrush"),
                 Margin = new Thickness(0, 4, 0, 0),
@@ -126,7 +130,7 @@ public partial class TasksWidget : WidgetBase
         var check = new Button
         {
             Style = (Style)FindResource("CheckCircleButton"),
-            ToolTip = "Afvinken",
+            ToolTip = Loc.T("Afvinken"),
             HorizontalAlignment = HorizontalAlignment.Left,
             VerticalAlignment = VerticalAlignment.Center,
         };
@@ -164,11 +168,11 @@ public partial class TasksWidget : WidgetBase
     private static string DescribeDue(DateTime due)
     {
         var today = DateTime.Today;
-        if (due == today) return "vandaag";
-        if (due == today.AddDays(1)) return "morgen";
-        if (due == today.AddDays(-1)) return "gisteren";
-        if (due > today && due < today.AddDays(7)) return due.ToString("dddd", Dutch);
-        return due.ToString("d MMM", Dutch).TrimEnd('.');
+        if (due == today) return Loc.T("vandaag");
+        if (due == today.AddDays(1)) return Loc.T("morgen");
+        if (due == today.AddDays(-1)) return Loc.T("gisteren");
+        if (due > today && due < today.AddDays(7)) return due.ToString("dddd", Loc.Culture);
+        return due.ToString("d MMM", Loc.Culture).TrimEnd('.');
     }
 
     private async Task CompleteAsync(TaskItem item, Grid row)
@@ -225,4 +229,35 @@ public partial class TasksWidget : WidgetBase
         NewTaskPlaceholder.Visibility = NewTaskBox.Text.Length == 0 ? Visibility.Visible : Visibility.Collapsed;
 
     private void MessageButton_Click(object sender, RoutedEventArgs e) => App.Instance.ShowSettings();
+
+    public override void Refresh()
+    {
+        if (_items != null && GoogleService.IsConnected) Render(_items);
+    }
+
+    public override FrameworkElement? CreateSettings(Action saved)
+    {
+        var panel = new StackPanel();
+        panel.Children.Add(Ui.Section(Loc.T("Taken")));
+        panel.Children.Add(Ui.Label(Loc.T("Takenlijst")));
+        var holder = new StackPanel();
+        holder.Children.Add(Ui.Hint(GoogleService.IsConnected ? Loc.T("Lijsten ophalen…") : Loc.T("Koppel eerst Google in de instellingen van IdleDash.")));
+        panel.Children.Add(holder);
+        panel.Loaded += async (_, _) =>
+        {
+            if (!GoogleService.IsConnected) return;
+            try
+            {
+                var lists = await GoogleService.GetTaskListsAsync();
+                holder.Children.Clear();
+                holder.Children.Add(Ui.Combo(lists.Select(l => (l.Title, (string?)l.Id)), ListSetting ?? lists.FirstOrDefault()?.Id,
+                    id => { Config.Set("list", id); saved(); }));
+            }
+            catch (Exception ex)
+            {
+                GoogleService.HandleError(ex);
+            }
+        };
+        return panel;
+    }
 }

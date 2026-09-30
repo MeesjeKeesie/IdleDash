@@ -11,7 +11,6 @@ namespace IdleDash.Widgets;
 
 public partial class WeatherWidget : WidgetBase
 {
-    private static readonly CultureInfo Dutch = new("nl-NL");
     private static readonly TimeSpan RefreshEvery = TimeSpan.FromMinutes(15);
 
     private readonly AppSettings _settings;
@@ -19,6 +18,7 @@ public partial class WeatherWidget : WidgetBase
     private DateTime _lastUpdate = DateTime.MinValue;
     private double _latitude;
     private double _longitude;
+    private WeatherData? _data;
 
     public WeatherWidget(AppSettings settings)
     {
@@ -52,17 +52,26 @@ public partial class WeatherWidget : WidgetBase
         {
             // Oude gegevens laten staan als we die al hebben
             if (_lastUpdate == DateTime.MinValue)
-                DescText.Text = "Geen weerdata. Controleer je internetverbinding.";
+                DescText.Text = Loc.T("Geen weerdata. Controleer je internetverbinding.");
             return;
         }
 
         _lastUpdate = DateTime.Now;
+        _data = data;
+        Render();
+    }
+
+    public override void Refresh() => Render();
+
+    private void Render()
+    {
+        if (_data is not { } data) return;
         var (text, icon) = WeatherService.Describe(data.Code, data.IsDay);
 
         IconText.Text = icon;
-        TempText.Text = Degrees(data.Temperature);
-        DescText.Text = $"{text}, voelt als {Degrees(data.FeelsLike)}";
-        DetailText.Text = $"Wind {Math.Round(data.Wind):0} km/u, luchtvochtigheid {data.Humidity}%";
+        TempText.Text = Loc.Degrees(data.Temperature);
+        DescText.Text = Loc.T("{0}, voelt als {1}", text, Loc.Degrees(data.FeelsLike));
+        DetailText.Text = Loc.T("Wind {0}, luchtvochtigheid {1}%", Loc.Wind(data.Wind), data.Humidity);
 
         ForecastGrid.Children.Clear();
         foreach (var day in data.Days.Skip(1).Take(3))
@@ -73,10 +82,9 @@ public partial class WeatherWidget : WidgetBase
     {
         var panel = new StackPanel();
 
-        string name = day.Date.ToString("dddd", Dutch);
         panel.Children.Add(new TextBlock
         {
-            Text = char.ToUpper(name[0], Dutch) + name[1..],
+            Text = Loc.Date(day.Date, "dddd"),
             FontSize = 15,
             Foreground = (Brush)FindResource("TextSecondaryBrush"),
         });
@@ -91,13 +99,11 @@ public partial class WeatherWidget : WidgetBase
         });
 
         var temps = new TextBlock { FontSize = 16 };
-        temps.Inlines.Add(new Run(Degrees(day.Max)));
-        temps.Inlines.Add(new Run("  " + Degrees(day.Min)) { Foreground = (Brush)FindResource("TextMutedBrush") });
+        temps.Inlines.Add(new Run(Loc.Degrees(day.Max)));
+        temps.Inlines.Add(new Run("  " + Loc.Degrees(day.Min)) { Foreground = (Brush)FindResource("TextMutedBrush") });
         panel.Children.Add(temps);
 
         return panel;
     }
 
-    // (int) voorkomt "-0°"
-    private static string Degrees(double value) => $"{(int)Math.Round(value)}°";
 }

@@ -8,13 +8,13 @@
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <TextBlock x:Name="SourceText" Text="NOS" FontSize="14" Margin="0,0,0,8"
-                   Foreground="{StaticResource TextSecondaryBrush}"/>
+        <TextBlock x:Name="SourceText" FontSize="14" Margin="0,0,0,8" TextTrimming="CharacterEllipsis"
+                   Foreground="{DynamicResource TextSecondaryBrush}"/>
 
         <!-- Koppen; klik er een aan om het artikel te openen -->
         <StackPanel x:Name="HeadlineList" Grid.Row="1" Margin="-8,0,-8,0"/>
 
         <TextBlock x:Name="MessageText" Grid.Row="1" FontSize="16" TextWrapping="Wrap" Visibility="Collapsed"
-                   Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center"/>
+                   Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
     </Grid>
 </w:WidgetBase>

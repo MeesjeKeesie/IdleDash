@@ -2,20 +2,27 @@
 
 Een dashboard voor je extra scherm. Het verschijnt vanzelf zodra daar geen vensters meer staan, en verdwijnt weer als je er iets naartoe sleept. Het neemt nooit je toetsenbord over.
 
+*English below.*
+
 <!-- Tip: maak een screenshot van je dashboard, zet hem in docs/screenshot.png en haal dan de eerste en laatste regel van dit commentaar weg.
 ![IdleDash](docs/screenshot.png)
 -->
 
 ## Wat staat erop
 
-- Klok en datum
-- Weer en Buienradar (regen voor de komende twee uur)
-- Je afspraken uit Google Agenda en je taken uit Google Taken
+- Klok en datum (24- of 12-uurs)
+- Weer en regenradar: Buienradar in Nederland en België, daarbuiten Open-Meteo
+- Je afspraken uit Google Agenda, Apple iCloud en agenda-links (.ics), en afspraken toevoegen met de plusknop
+- Je taken uit Google Taken
+- Nieuws en RSS: NOS, BBC, of elke website met een feed (ook YouTube-kanalen en Reddit)
+- Foto's als diavoorstelling uit een map op je pc
+- Een aftelklok, bijvoorbeeld tot je vakantie of een verjaardag
+- Smarthome: Home Assistant, Philips Hue en Shelly bedienen, en een melding als de deurbel gaat
 - Wat er speelt in Spotify of je browser, met vorige, pauze en volgende
-- Nieuwskoppen van de NOS
-- PC-stats (processor, videokaart, geheugen)
-- Een focustimer
+- PC-stats (processor, videokaart, geheugen) en een focustimer
+- Thema's: kant-en-klaar of zelf gemaakt, met je eigen foto als achtergrond, ook per widget
 - Een nachtmodus die het scherm 's avonds dimt
+- Nederlands en Engels
 
 Je kiest zelf welke onderdelen je ziet, waar ze staan en hoe groot ze zijn.
 
@@ -32,20 +39,44 @@ Voor Windows 10 (versie 2004 of nieuwer) en Windows 11. Je hebt verder niets nod
 ## Eerste keer
 
 - Heb je meerdere schermen, dan kiest IdleDash vanzelf je bovenste extra scherm (nooit je hoofdscherm). Een ander scherm kies je in de instellingen.
-- Klik op het IdleDash-icoon bij de klok voor de instellingen: je plaats voor het weer, de nachtmodus, de nieuwsrubriek en meer.
-- Beweeg je muis over het dashboard en klik op het potlood om widgets te verplaatsen, groter te maken of toe te voegen.
+- Klik op het IdleDash-icoon bij de klok voor de instellingen: taal, thema, je plaats voor het weer, agenda's, smarthome en meer.
+- Beweeg je muis over het dashboard en klik op het potlood om widgets te verplaatsen, groter te maken of toe te voegen. Het tandwieltje op een widget opent de instellingen van alleen die widget (bijvoorbeeld welke nieuwsbronnen of welke fotomap).
 
 Windows 11 verstopt nieuwe icoontjes achter het pijltje (^) bij de klok. Sleep het icoon naar de taakbalk om hem altijd te zien.
 
-## Google Agenda en Taken
+## Agenda's
 
-Klik in de instellingen op **Koppelen met Google** en log in. Google laat eerst een waarschuwing zien dat de app niet door Google is geverifieerd. Klik op **Geavanceerd** en daarna op **Ga naar IdleDash** om verder te gaan.
+**Google:** klik in de instellingen op **Koppelen met Google** en log in. Google laat eerst een waarschuwing zien dat de app niet door Google is geverifieerd. Klik op **Geavanceerd** en daarna op **Ga naar IdleDash**. Had je Google al gekoppeld in een oudere versie? Klik dan één keer op **Opnieuw koppelen** om ook afspraken te kunnen toevoegen.
 
-IdleDash leest je agenda (alleen lezen) en je taken. Taken afvinken of toevoegen gebeurt alleen als jij daarop klikt. Alles blijft op je eigen pc: er is geen server van IdleDash die je gegevens ziet. Lees het [privacybeleid](https://meesjekeesie.github.io/IdleDash/privacy.html).
+**Apple iCloud:** je hebt een *app-specifiek wachtwoord* nodig (niet je gewone wachtwoord). Maak dat aan op [account.apple.com](https://account.apple.com) bij Inloggen en beveiliging, App-specifieke wachtwoorden, en vul het samen met je Apple ID in bij de instellingen.
+
+**Agenda-links:** plak een gedeelde .ics- of webcal-link, bijvoorbeeld van Outlook, de afvalkalender van je gemeente of school.
+
+IdleDash leest je agenda's en taken. Afspraken toevoegen, taken afvinken of toevoegen gebeurt alleen als jij daarop klikt.
+
+## Smarthome
+
+- **Home Assistant:** vul het adres in (meestal `http://homeassistant.local:8123`) en een token. Een token maak je in Home Assistant: klik linksonder op je naam, ga naar Beveiliging en maak een *langlevend toegangstoken* aan. Via Home Assistant kun je ook apparaten van de meeste andere merken en Zigbee-apparaten bedienen.
+- **Philips Hue:** klik op Zoeken, druk op de ronde knop van je Hue-bridge en klik binnen 30 seconden op Koppelen.
+- **Shelly:** vul het IP-adres van je Shelly in (staat in de Shelly-app).
+
+Voeg daarna de widget Smarthome toe en kies met het tandwieltje welke apparaten je wilt zien. Sloten, alarm en garagedeuren vragen altijd om een bevestiging, want iedereen bij je scherm kan klikken. Alles gaat rechtstreeks binnen je eigen netwerk.
+
+## Foto's
+
+Kies met het tandwieltje van de widget een map, bijvoorbeeld een map die met OneDrive of Google Drive synchroniseert. Voor iPhone-foto's (HEIC) heeft Windows twee gratis uitbreidingen uit de Microsoft Store nodig; de widget geeft je de knoppen als het nodig is.
 
 ## Updates
 
-IdleDash laat het weten als er een nieuwe versie is. Download hem via Instellingen > Over IdleDash en installeer hem over de oude heen. Je instellingen blijven bewaard.
+IdleDash werkt zichzelf bij. Een nieuwe versie wordt op de achtergrond gedownload en gecontroleerd, en jij kiest wanneer IdleDash even herstart: klik op de melding, of ga naar Instellingen > Over IdleDash. Automatisch bijwerken kun je daar ook uitzetten. Je instellingen blijven altijd bewaard.
+
+Gebruik je de portable-versie, dan krijg je alleen een melding en download je de nieuwe versie zelf.
+
+Wat er in elke versie veranderd is, staat in [CHANGELOG.md](CHANGELOG.md).
+
+## Privacy
+
+Alles blijft op je eigen pc: er is geen server van IdleDash die je gegevens ziet. Je iCloud-wachtwoord en smarthome-tokens worden versleuteld met je Windows-account opgeslagen. Lees het [privacybeleid](https://meesjekeesie.github.io/IdleDash/privacy.html).
 
 ## Verwijderen
 
@@ -53,12 +84,26 @@ Via Windows-instellingen > Apps > Geïnstalleerde apps > IdleDash > Verwijderen.
 
 ## Zelf bouwen
 
-Open `IdleDash.csproj` in Visual Studio 2022 en druk op F5. Alles over ontwikkelen, de Google-sleutel en nieuwe versies uitbrengen staat in [ONTWIKKELEN.md](ONTWIKKELEN.md).
+Open `IdleDash.csproj` in Visual Studio 2022 en druk op F5. Alles over ontwikkelen, vertalen, de Google-sleutel en nieuwe versies uitbrengen staat in [ONTWIKKELEN.md](ONTWIKKELEN.md).
 
 ## Bronnen
 
-Weer en plaatsen: [Open-Meteo](https://open-meteo.com). Regen: [Buienradar](https://www.buienradar.nl). Nieuws: [NOS](https://nos.nl). IdleDash is niet verbonden aan Google, Buienradar of de NOS.
+Weer, plaatsen en regen buiten Nederland: [Open-Meteo](https://open-meteo.com). Regen in Nederland en België: [Buienradar](https://www.buienradar.nl). Nieuws: de feeds die je zelf kiest, zoals [NOS](https://nos.nl) en [BBC](https://www.bbc.co.uk/news). IdleDash is niet verbonden aan Google, Apple, Buienradar, de NOS, de BBC, Signify (Philips Hue), Shelly of Home Assistant.
 
 ## Licentie
 
 MIT, zie [LICENSE](LICENSE).
+
+---
+
+## English
+
+IdleDash is a dashboard for your extra screen. It appears by itself as soon as no windows are left on that screen, and disappears again when you drag something onto it. It never takes over your keyboard.
+
+**What's on it:** clock, weather and rain radar, your events from Google Calendar, Apple iCloud and calendar links (and adding events), Google Tasks, news and RSS (BBC, NOS or any site with a feed), a photo slideshow, countdowns, smart home control for Home Assistant, Philips Hue and Shelly (with doorbell notifications), what's playing in Spotify or your browser, PC stats, a focus timer, themes (including your own photo as a background, also per widget) and a night mode. The app is available in English and Dutch.
+
+**Install:** download **IdleDash-Setup-….exe** from [Releases](https://github.com/MeesjeKeesie/IdleDash/releases/latest). If Windows says "Windows protected your PC", click **More info** and **Run anyway**. Then click the IdleDash icon next to the clock, open the settings and choose **English** under Language and display (by default IdleDash follows your Windows language).
+
+**Google:** Google shows a warning that the app isn't verified. Click **Advanced** and then **Go to IdleDash**. **Apple iCloud** needs an app-specific password from [account.apple.com](https://account.apple.com).
+
+**Privacy:** everything stays on your own PC; there is no IdleDash server. See the [privacy policy](https://meesjekeesie.github.io/IdleDash/privacy.html). IdleDash updates itself; see [CHANGELOG.md](CHANGELOG.md) for what's new.

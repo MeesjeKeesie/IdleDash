@@ -57,6 +57,8 @@ Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: 
 
 [Run]
 Filename: "{app}\IdleDash.exe"; Description: "IdleDash nu starten"; Flags: nowait postinstall skipifsilent
+; Na een automatische update (die stil draait) IdleDash meteen weer starten
+Filename: "{app}\IdleDash.exe"; Flags: nowait skipifnotsilent
 
 [UninstallDelete]
 ; Bij verwijderen je Google-login wissen (je instellingen en indeling blijven bewaard)

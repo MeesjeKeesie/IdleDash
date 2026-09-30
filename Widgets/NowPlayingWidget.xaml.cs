@@ -5,6 +5,8 @@ using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using Windows.Media.Control;
 
+using IdleDash.Core;
+
 namespace IdleDash.Widgets;
 
 /// <summary>
@@ -104,7 +106,7 @@ public partial class NowPlayingWidget : WidgetBase
             var media = await session.TryGetMediaPropertiesAsync();
             if (version != _mediaVersion || session != _session) return;   // intussen alweer iets anders
 
-            TitleText.Text = string.IsNullOrWhiteSpace(media.Title) ? "Onbekend nummer" : media.Title;
+            TitleText.Text = string.IsNullOrWhiteSpace(media.Title) ? Loc.T("Onbekend nummer") : media.Title;
             ArtistText.Text = !string.IsNullOrWhiteSpace(media.Artist) ? media.Artist : media.AlbumTitle ?? "";
 
             var cover = await LoadCoverAsync(media.Thumbnail);
@@ -125,7 +127,7 @@ public partial class NowPlayingWidget : WidgetBase
             var info = session.GetPlaybackInfo();
             _playing = info.PlaybackStatus == GlobalSystemMediaTransportControlsSessionPlaybackStatus.Playing;
             PlayPauseButton.Content = _playing ? "\uE769" : "\uE768";
-            PlayPauseButton.ToolTip = _playing ? "Pauzeren" : "Afspelen";
+            PlayPauseButton.ToolTip = _playing ? Loc.T("Pauzeren") : Loc.T("Afspelen");
             PlayPauseButton.IsEnabled = info.Controls.IsPlayPauseToggleEnabled || info.Controls.IsPlayEnabled || info.Controls.IsPauseEnabled;
             PrevButton.IsEnabled = info.Controls.IsPreviousEnabled;
             NextButton.IsEnabled = info.Controls.IsNextEnabled;
@@ -185,8 +187,8 @@ public partial class NowPlayingWidget : WidgetBase
 
     private void ShowNothing()
     {
-        TitleText.Text = "Er speelt niets";
-        ArtistText.Text = "Start muziek in Spotify of je browser";
+        TitleText.Text = Loc.T("Er speelt niets");
+        ArtistText.Text = Loc.T("Start muziek in Spotify of je browser");
         SetCover(null);
         _duration = TimeSpan.Zero;
         _playing = false;

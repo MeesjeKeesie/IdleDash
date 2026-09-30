@@ -23,37 +23,48 @@
 </head>
 <body>
 <main>
-  <p class="small"><a href="index.html">IdleDash</a></p>
+  <p class="small"><a href="index.html">IdleDash</a> &middot; <a href="#english">English</a></p>
   <h1>Privacybeleid</h1>
-  <p class="small">Laatst bijgewerkt: 28 september 2026</p>
+  <p class="small">Laatst bijgewerkt: 30 september 2026 (versie 1.2.0)</p>
 
   <p>IdleDash is een gratis, open-source programma voor Windows, gemaakt door MeesjeKeesie. Het draait helemaal op je eigen pc. Er is geen server of account van IdleDash, en de maker krijgt geen gegevens van je te zien.</p>
 
   <h2>Gegevens van Google</h2>
   <p>Als je IdleDash koppelt met je Google-account, vraagt het om deze toegang:</p>
   <ul>
-    <li><strong>Google Agenda, alleen lezen</strong>: de titel, tijd en kleur van je komende afspraken, om ze op je dashboard te tonen.</li>
+    <li><strong>Google Agenda lezen</strong>: de namen en kleuren van je agenda's en de titel en tijd van je komende afspraken, om ze op je dashboard te tonen.</li>
+    <li><strong>Afspraken in Google Agenda</strong>: om een afspraak toe te voegen die jij zelf invult en met de knop Toevoegen bevestigt. IdleDash wijzigt of verwijdert nooit afspraken.</li>
     <li><strong>Google Taken</strong>: de titel, vervaldatum en status van je open taken, om ze te tonen. IdleDash vinkt een taak alleen af of voegt er een toe als jij daar zelf op klikt.</li>
   </ul>
-  <p>IdleDash gebruikt deze gegevens alleen om ze op je eigen scherm te laten zien. Afspraken en taken worden niet opgeslagen: ze staan alleen in het geheugen zolang IdleDash draait. Op je pc wordt alleen je login bewaard (een toegangssleutel van Google) in de map <code>%AppData%\IdleDash\google-login</code>, zodat je niet steeds opnieuw hoeft in te loggen.</p>
+  <p>IdleDash gebruikt deze gegevens alleen om ze op je eigen scherm te laten zien, en om de afspraken en taken toe te voegen of af te vinken waar jij om vraagt. Afspraken en taken worden niet opgeslagen: ze staan alleen in het geheugen zolang IdleDash draait. Op je pc wordt alleen je login bewaard (een toegangssleutel van Google) in de map <code>%AppData%\IdleDash\google-login</code>, zodat je niet steeds opnieuw hoeft in te loggen.</p>
   <p>Gegevens van Google worden niet gedeeld, niet verkocht, niet voor advertenties gebruikt en niet naar de maker of anderen gestuurd. IdleDash praat rechtstreeks vanaf je pc met Google.</p>
   <p>Het gebruik en de overdracht door IdleDash van informatie die het van Google API's ontvangt, voldoet aan de <a href="https://developers.google.com/terms/api-services-user-data-policy">Google API Services User Data Policy</a>, inclusief de eisen voor beperkt gebruik (Limited Use).</p>
 
   <h3>Toegang intrekken</h3>
   <p>Klik in de instellingen van IdleDash op Ontkoppelen, of trek de toegang in via <a href="https://myaccount.google.com/permissions">myaccount.google.com/permissions</a>. Verwijder je IdleDash via de Windows-instellingen, dan wordt je login ook van je pc gewist.</p>
 
+  <h2>Apple iCloud-agenda</h2>
+  <p>Koppel je een iCloud-agenda, dan bewaart IdleDash je Apple ID en het app-specifieke wachtwoord dat je daarvoor aanmaakt. Het wachtwoord wordt versleuteld met je Windows-account (Windows-gegevensbescherming), zodat alleen jij het op deze pc kunt gebruiken. IdleDash maakt daarmee rechtstreeks verbinding met de agendaserver van Apple om je afspraken te lezen, en om een afspraak toe te voegen als jij daarom vraagt. Intrekken: klik op Ontkoppelen, of verwijder het app-specifieke wachtwoord op <a href="https://account.apple.com">account.apple.com</a>.</p>
+
+  <h2>Smarthome</h2>
+  <p>Koppel je Home Assistant, Philips Hue of Shelly, dan praat IdleDash rechtstreeks met die apparaten op het adres dat jij invult, meestal binnen je eigen thuisnetwerk. Het toegangstoken van Home Assistant en de sleutel van de Hue-bridge worden versleuteld met je Windows-account opgeslagen. De standen van je apparaten worden niet bewaard en gaan nooit naar de maker of anderen.</p>
+
+  <h2>Foto's</h2>
+  <p>De fotowidget en een foto als achtergrond lezen alleen bestanden uit de mappen die jij kiest, op je eigen pc. Foto's worden nergens naartoe gestuurd.</p>
+
   <h2>Andere diensten</h2>
   <p>Voor de andere onderdelen maakt IdleDash rechtstreeks vanaf je pc verbinding met:</p>
   <ul>
-    <li><strong>Open-Meteo</strong> voor het weer en het zoeken van je plaats: de coördinaten van je gekozen plaats, of je zoekterm.</li>
-    <li><strong>Buienradar</strong> voor de regenverwachting: de coördinaten van je gekozen plaats.</li>
-    <li><strong>NOS</strong> voor nieuwskoppen: er worden geen persoonlijke gegevens meegestuurd.</li>
-    <li><strong>GitHub</strong> om te kijken of er een nieuwe versie is: er worden geen persoonlijke gegevens meegestuurd.</li>
+    <li><strong>Open-Meteo</strong> voor het weer, het zoeken van je plaats en de regenverwachting buiten Nederland en België: de coördinaten van je gekozen plaats, of je zoekterm.</li>
+    <li><strong>Buienradar</strong> voor de regenverwachting in Nederland en België: de coördinaten van je gekozen plaats.</li>
+    <li><strong>Nieuwsbronnen die jij kiest</strong>, zoals de NOS en de BBC, en de websites waarvan je een feed toevoegt: om de koppen en eventueel de plaatjes op te halen. Er worden geen persoonlijke gegevens meegestuurd.</li>
+    <li><strong>Agenda-links die jij invult</strong> (.ics of webcal): om die agenda te downloaden.</li>
+    <li><strong>GitHub</strong> om te kijken of er een nieuwe versie is en die te downloaden: er worden geen persoonlijke gegevens meegestuurd.</li>
   </ul>
   <p>Die diensten zien, zoals bij elke website, je IP-adres. IdleDash verzamelt geen statistieken en bevat geen advertenties of tracking.</p>
 
   <h2>Op je pc</h2>
-  <p>Je instellingen en indeling staan in <code>%AppData%\IdleDash</code>. Die map kun je zelf wissen.</p>
+  <p>Je instellingen en indeling staan in <code>%AppData%\IdleDash</code>, samen met de versleutelde wachtwoorden en tokens hierboven. Die map kun je zelf wissen. Updates worden tijdelijk gedownload naar <code>%LocalAppData%\IdleDash\updates</code>.</p>
 
   <h2>Contact</h2>
   <p>Vragen? Maak een melding aan op <a href="https://github.com/MeesjeKeesie/IdleDash/issues">GitHub</a>.</p>
@@ -61,22 +72,35 @@
   <hr>
 
   <h1 id="english">Privacy policy</h1>
-  <p class="small">Last updated: September 28, 2026</p>
+  <p class="small">Last updated: September 30, 2026 (version 1.2.0)</p>
 
   <p>IdleDash is a free, open-source Windows application made by MeesjeKeesie. It runs entirely on your own computer. There is no IdleDash server or account, and the developer never receives any of your data.</p>
 
   <h2>Google user data</h2>
   <ul>
-    <li><strong>Google Calendar, read-only</strong>: the title, time and color of your upcoming events, to display them on your dashboard.</li>
+    <li><strong>Read Google Calendar</strong>: the names and colors of your calendars and the title and time of your upcoming events, to display them on your dashboard.</li>
+    <li><strong>Events in Google Calendar</strong>: to add an event that you fill in yourself and confirm with the Add button. IdleDash never changes or deletes events.</li>
     <li><strong>Google Tasks</strong>: the title, due date and status of your open tasks, to display them. IdleDash only completes or creates a task when you click to do so.</li>
   </ul>
-  <p>This data is used only to show it on your own screen. Events and tasks are not stored; they are kept in memory while IdleDash runs. The only thing saved on your computer is your Google sign-in token, in <code>%AppData%\IdleDash\google-login</code>.</p>
+  <p>This data is used only to show it on your own screen and to add or complete the events and tasks you ask for. Events and tasks are not stored; they are kept in memory while IdleDash runs. The only thing saved on your computer is your Google sign-in token, in <code>%AppData%\IdleDash\google-login</code>.</p>
   <p>Google user data is not shared, sold, used for advertising, or sent to the developer or any third party. IdleDash communicates directly between your computer and Google.</p>
   <p>IdleDash's use and transfer of information received from Google APIs will adhere to the <a href="https://developers.google.com/terms/api-services-user-data-policy">Google API Services User Data Policy</a>, including the Limited Use requirements.</p>
-  <p>To revoke access, click Disconnect (Ontkoppelen) in the IdleDash settings or visit <a href="https://myaccount.google.com/permissions">myaccount.google.com/permissions</a>. Uninstalling IdleDash through Windows Settings also deletes the sign-in token from your computer.</p>
+  <p>To revoke access, click Disconnect in the IdleDash settings or visit <a href="https://myaccount.google.com/permissions">myaccount.google.com/permissions</a>. Uninstalling IdleDash through Windows Settings also deletes the sign-in token from your computer.</p>
+
+  <h2>Apple iCloud calendar</h2>
+  <p>If you connect an iCloud calendar, IdleDash stores your Apple ID and the app-specific password you create for it. The password is encrypted with your Windows account (Windows Data Protection), so only you can use it on this computer. IdleDash uses it to connect directly to Apple's calendar server to read your events, and to add an event when you ask it to. To revoke access, click Disconnect, or delete the app-specific password at <a href="https://account.apple.com">account.apple.com</a>.</p>
+
+  <h2>Smart home</h2>
+  <p>If you connect Home Assistant, Philips Hue or Shelly, IdleDash talks directly to those devices at the address you enter, usually within your own home network. The Home Assistant access token and the Hue bridge key are stored encrypted with your Windows account. Device states are not stored and are never sent to the developer or anyone else.</p>
+
+  <h2>Photos</h2>
+  <p>The photo widget and a photo background only read files from the folders you choose, on your own computer. Photos are never sent anywhere.</p>
 
   <h2>Other services</h2>
-  <p>IdleDash connects directly from your computer to Open-Meteo (weather and place search: the coordinates of your chosen place or your search term), Buienradar (rain forecast: coordinates), NOS (news headlines: no personal data) and GitHub (update check: no personal data). These services see your IP address, as with any website. IdleDash contains no analytics, ads or tracking.</p>
+  <p>IdleDash connects directly from your computer to Open-Meteo (weather, place search and rain outside the Netherlands and Belgium: the coordinates of your chosen place or your search term), Buienradar (rain in the Netherlands and Belgium: coordinates), the news sources and feeds you choose, such as NOS and BBC (headlines and optional images: no personal data), calendar links you enter (to download that calendar) and GitHub (checking for and downloading updates: no personal data). These services see your IP address, as with any website. IdleDash contains no analytics, ads or tracking.</p>
+
+  <h2>On your computer</h2>
+  <p>Your settings and layout are stored in <code>%AppData%\IdleDash</code>, together with the encrypted passwords and tokens mentioned above. You can delete this folder yourself. Updates are temporarily downloaded to <code>%LocalAppData%\IdleDash\updates</code>.</p>
 
   <h2>Contact</h2>
   <p>Questions? Open an issue on <a href="https://github.com/MeesjeKeesie/IdleDash/issues">GitHub</a>.</p>

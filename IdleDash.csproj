@@ -13,7 +13,7 @@
     <ApplicationIcon>Assets\IdleDash.ico</ApplicationIcon>
     <!-- Draait ook als er alleen een nieuwere .NET (9 of 10) op je pc staat -->
     <RollForward>LatestMajor</RollForward>
-    <!-- Alleen Nederlandse teksten van onderdelen meenemen: scheelt veel megabytes in de download -->
+    <!-- Alleen Nederlandse teksten van onderdelen meenemen (Engels zit er standaard al in): scheelt veel megabytes -->
     <SatelliteResourceLanguages>nl</SatelliteResourceLanguages>
   </PropertyGroup>
 
@@ -31,6 +31,8 @@
 
   <ItemGroup>
     <PackageReference Include="System.Diagnostics.PerformanceCounter" Version="8.0.0" />
+    <!-- Versleutelt je iCloud-wachtwoord en smarthome-tokens met je Windows-account (DPAPI) -->
+    <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="8.0.0" />
     <!-- Google Agenda en Google Taken. "1.*" = altijd de nieuwste 1.x-versie -->
     <PackageReference Include="Google.Apis.Auth" Version="1.*" />
     <PackageReference Include="Google.Apis.Calendar.v3" Version="1.*" />

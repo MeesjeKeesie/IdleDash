@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Net.Http;
 using System.Text.Json;
+using IdleDash.Core;
 
 namespace IdleDash.Services;
 
@@ -65,7 +66,7 @@ public static class WeatherService
     /// <summary>Plaatsen zoeken op naam (voor het instellingenscherm). null = zoeken lukte niet.</summary>
     public static async Task<List<Place>?> SearchPlacesAsync(string query)
     {
-        string url = "https://geocoding-api.open-meteo.com/v1/search?count=6&language=nl&format=json&name="
+        string url = "https://geocoding-api.open-meteo.com/v1/search?count=6&format=json&language=" + Loc.Language + "&name="
             + Uri.EscapeDataString(query);
         try
         {
@@ -99,25 +100,29 @@ public static class WeatherService
             : "";
 
     /// <summary>Weercode (WMO) omzetten naar Nederlandse tekst en een icoon.</summary>
-    public static (string Text, string Icon) Describe(int code, bool isDay = true) => code switch
+    public static (string Text, string Icon) Describe(int code, bool isDay = true)
     {
-        0 => (isDay ? "Zonnig" : "Helder", isDay ? "\u2600" : "\u263E"),
-        1 => (isDay ? "Overwegend zonnig" : "Overwegend helder", isDay ? "\u26C5" : "\u2601"),
-        2 => ("Half bewolkt", isDay ? "\u26C5" : "\u2601"),
-        3 => ("Bewolkt", "\u2601"),
-        45 or 48 => ("Mist", "\U0001F32B"),
-        51 or 53 or 55 => ("Motregen", "\U0001F326"),
-        56 or 57 or 66 or 67 => ("IJzel", "\U0001F327"),
-        61 => ("Lichte regen", "\U0001F327"),
-        63 => ("Regen", "\U0001F327"),
-        65 => ("Zware regen", "\U0001F327"),
-        71 => ("Lichte sneeuw", "\u2744"),
-        73 or 75 or 77 => ("Sneeuw", "\u2744"),
-        80 => ("Lichte buien", "\U0001F326"),
-        81 or 82 => ("Regenbuien", "\U0001F327"),
-        85 or 86 => ("Sneeuwbuien", "\u2744"),
-        95 => ("Onweer", "\u26C8"),
-        96 or 99 => ("Onweer met hagel", "\u26C8"),
-        _ => ("Onbekend", "\u2601"),
-    };
+        var (text, icon) = code switch
+        {
+            0 => (isDay ? "Zonnig" : "Helder", isDay ? "\u2600" : "\u263E"),
+            1 => (isDay ? "Overwegend zonnig" : "Overwegend helder", isDay ? "\u26C5" : "\u2601"),
+            2 => ("Half bewolkt", isDay ? "\u26C5" : "\u2601"),
+            3 => ("Bewolkt", "\u2601"),
+            45 or 48 => ("Mist", "\U0001F32B"),
+            51 or 53 or 55 => ("Motregen", "\U0001F326"),
+            56 or 57 or 66 or 67 => ("IJzel", "\U0001F327"),
+            61 => ("Lichte regen", "\U0001F327"),
+            63 => ("Regen", "\U0001F327"),
+            65 => ("Zware regen", "\U0001F327"),
+            71 => ("Lichte sneeuw", "\u2744"),
+            73 or 75 or 77 => ("Sneeuw", "\u2744"),
+            80 => ("Lichte buien", "\U0001F326"),
+            81 or 82 => ("Regenbuien", "\U0001F327"),
+            85 or 86 => ("Sneeuwbuien", "\u2744"),
+            95 => ("Onweer", "\u26C8"),
+            96 or 99 => ("Onweer met hagel", "\u26C8"),
+            _ => ("Onbekend", "\u2601"),
+        };
+        return (Loc.T(text), icon);
+    }
 }
