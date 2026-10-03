@@ -70,8 +70,7 @@ public partial class MainWindow : Window
             UpdateNightMode();
         };
 
-        foreach (var definition in WidgetCatalog.All)
-            AddList.Children.Add(CreateMenuItem(definition));
+        FillAddList("");
 
         // Luisteren naar Windows: schermen aangesloten, losgekoppeld of resolutie veranderd
         HwndSource.FromHwnd(_hwnd)?.AddHook(WndProc);
@@ -199,8 +198,7 @@ public partial class MainWindow : Window
     private void ApplyLanguage()
     {
         Loc.Apply(this, recordNew: false);
-        AddList.Children.Clear();
-        foreach (var definition in WidgetCatalog.All) AddList.Children.Add(CreateMenuItem(definition));
+        FillAddList(AddSearchBox.Text);
         foreach (var host in _hosts) Loc.Apply(host, recordNew: false);
     }
 
@@ -519,7 +517,61 @@ public partial class MainWindow : Window
 
     private void EditButton_Click(object sender, RoutedEventArgs e) => SetEditMode(true);
     private void DoneButton_Click(object sender, RoutedEventArgs e) => SetEditMode(false);
-    private void AddButton_Click(object sender, RoutedEventArgs e) => AddPopup.IsOpen = true;
+    private void AddButton_Click(object sender, RoutedEventArgs e)
+    {
+        AddSearchBox.Text = "";
+        AddPopup.IsOpen = true;
+        // Pas als je zelf op + klikt, krijgt het dashboard je toetsenbord (om te kunnen zoeken)
+        Dispatcher.BeginInvoke(DispatcherPriority.Input, () =>
+        {
+            Activate();
+            AddSearchBox.Focus();
+            Keyboard.Focus(AddSearchBox);
+        });
+    }
+
+    /// <summary>De lijst met widgets om toe te voegen, gefilterd op wat je typt.</summary>
+    private void FillAddList(string filter)
+    {
+        filter = filter.Trim();
+        AddList.Children.Clear();
+        foreach (var definition in WidgetCatalog.All.Where(d => filter.Length == 0
+                     || Loc.T(d.Name).Contains(filter, StringComparison.CurrentCultureIgnoreCase)
+                     || d.Name.Contains(filter, StringComparison.CurrentCultureIgnoreCase)))
+            AddList.Children.Add(CreateMenuItem(definition));
+        if (AddList.Children.Count == 0)
+        {
+            AddList.Children.Add(new TextBlock
+            {
+                Text = Loc.T("Geen widget gevonden."),
+                Margin = new Thickness(12, 4, 12, 10),
+                Foreground = (Brush)FindResource("TextMutedBrush"),
+            });
+        }
+    }
+
+    private void AddSearchBox_TextChanged(object sender, TextChangedEventArgs e)
+    {
+        AddSearchHint.Visibility = AddSearchBox.Text.Length == 0 ? Visibility.Visible : Visibility.Collapsed;
+        FillAddList(AddSearchBox.Text);
+    }
+
+    private void AddSearchBox_KeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Escape)
+        {
+            AddPopup.IsOpen = false;
+            e.Handled = true;
+        }
+        else if (e.Key == Key.Enter && AddList.Children.OfType<Button>().FirstOrDefault() is { } first)
+        {
+            first.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));   // eerste treffer toevoegen
+            e.Handled = true;
+        }
+    }
+
+    /// <summary>Melding bovenin het dashboard en in Windows, bv. van de deurbel.</summary>
+    public void ShowAlert(string title, string text) => ShowToast(title, text);
     private void SettingsButton_Click(object sender, RoutedEventArgs e) => App.Instance.ShowSettings();
 
     // ─────────────────────────── Sfeer: lucht en inbrand-bescherming ───────────────────────────

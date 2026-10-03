@@ -139,6 +139,10 @@
             <TextBlock Style="{StaticResource SectionTitle}" Text="Smarthome"/>
             <StackPanel x:Name="SmartHomePanel"/>
 
+            <!-- ═══ Deurbel via ntfy (in code gebouwd) ═══ -->
+            <TextBlock Style="{StaticResource SectionTitle}" Text="Deurbel"/>
+            <StackPanel x:Name="DoorbellPanel"/>
+
             <!-- ═══ Algemeen ═══ -->
             <TextBlock Style="{StaticResource SectionTitle}" Text="Algemeen"/>
             <CheckBox x:Name="AutostartSwitch" Style="{StaticResource Switch}" Margin="0,8,0,0"
@@ -152,6 +156,10 @@
             <TextBox x:Name="IgnoredBox" LostFocus="Setting_Changed"/>
             <TextBlock Style="{StaticResource Hint}" Margin="0,6,0,0"
                        Text="Namen zonder .exe, gescheiden door komma's. Vensters van deze programma's houden het dashboard niet tegen."/>
+
+            <!-- ═══ Back-up (in code gebouwd) ═══ -->
+            <TextBlock Style="{StaticResource SectionTitle}" Text="Back-up"/>
+            <StackPanel x:Name="BackupPanel"/>
 
             <!-- ═══ Over IdleDash ═══ -->
             <TextBlock Style="{StaticResource SectionTitle}" Text="Over IdleDash"/>

@@ -2,6 +2,36 @@
 
 Bij elke release op GitHub plak je het stuk van die versie in de beschrijving.
 
+## 1.3.0
+
+**Nederlands**
+
+Nieuw:
+- **Smarthome-groepen**: zet lampen en schakelaars, ook van verschillende merken, samen in één tegel. Eén klik zet alles aan of uit en scrollen dimt alles tegelijk. Groepen maak je bij Instellingen > Smarthome.
+- **Kleur, wit en helderheid**: lamptegels hebben een kleurknopje. Daarmee kies je een kleur (kleurvlak of kleurbolletjes), een wittint op een balk die de echte kleur van het wit laat zien, en de helderheid. Werkt met Home Assistant en Philips Hue, ook voor groepen. Een brandende lamp kleurt zijn tegel in zijn eigen kleur.
+- **Aandelen**: volg aandelen, indexen en crypto met de koers, de verandering van vandaag en een grafiekje. Zoek op naam; gratis via Yahoo Finance, ongeveer 15 minuten vertraagd.
+- **Snelkoppelingen**: tegels voor je apps en websites, met hun eigen icoon. Sleep een app, snelkoppeling of link op de widget om hem toe te voegen.
+- **Deurbel via ntfy**: IdleDash luistert naar een ntfy-onderwerp. Gaat de bel, dan krijg je een melding bovenin het dashboard en in Windows, pauzeert je muziek en speelt er een geluid: een ingebouwde dingdong of je eigen geluid.
+- **Back-ups**: bewaar al je instellingen in één bestand en zet ze terug wanneer je wilt. IdleDash maakt daarnaast elke dag automatisch een back-up; de laatste 10 blijven bewaard.
+- **Zoeken bij widgets toevoegen**: typ in het plusmenu een paar letters om de widget te vinden. Enter voegt de eerste toe.
+
+Goed om te weten bij het bijwerken:
+- Je instellingen en koppelingen blijven gewoon bewaard.
+
+**English**
+
+New:
+- **Smart home groups**: put lights and switches, even from different brands, together in one tile. One click turns everything on or off, and scrolling dims them all at once. Create groups under Settings > Smart home.
+- **Color, white and brightness**: light tiles have a color button. Use it to pick a color (color field or swatches), a white tone on a bar that shows the actual color of the white, and the brightness. Works with Home Assistant and Philips Hue, also for groups. A light that's on colors its tile in its own color.
+- **Stocks**: follow stocks, indexes and crypto with the price, today's change and a small chart. Search by name; free via Yahoo Finance, delayed by about 15 minutes.
+- **Shortcuts**: tiles for your apps and websites, with their own icons. Drag an app, shortcut or link onto the widget to add it.
+- **Doorbell via ntfy**: IdleDash listens to an ntfy topic. When the doorbell rings, you get a notification at the top of the dashboard and in Windows, your music pauses and a sound plays: a built-in ding-dong or your own sound.
+- **Backups**: save all your settings to one file and restore them whenever you like. IdleDash also creates a backup automatically every day and keeps the last 10.
+- **Search when adding widgets**: type a few letters in the plus menu to find a widget. Enter adds the first one.
+
+Good to know when updating:
+- Your settings and connections are kept.
+
 ## 1.2.0
 
 **Nederlands**

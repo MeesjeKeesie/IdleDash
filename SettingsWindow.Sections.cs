@@ -456,19 +456,27 @@ public partial class SettingsWindow
             Loc.T("Altijd met een bevestiging, want iedereen bij je scherm kan klikken."), home.AllowSensitive,
             v => { home.AllowSensitive = v; _settings.Save(); SmartHomeService.Configure(_settings); }));
 
+        // Eigen groepen
+        SmartHomePanel.Children.Add(Ui.Label(Loc.T("Groepen")));
+        SmartHomePanel.Children.Add(Ui.Hint(Loc.T("Zet lampen en schakelaars, ook van verschillende merken, samen in één tegel. Een klik op de tegel zet alles tegelijk aan of uit.")));
+        var groupsPanel = new StackPanel();
+        SmartHomePanel.Children.Add(groupsPanel);
+
         if (!SmartHomeService.HasAnySystem)
         {
             notifyList.Children.Add(Ui.Hint(Loc.T("Koppel eerst een systeem, dan kun je hier kiezen bij welke sensor (bv. de deurbel) je een melding krijgt.")));
+            groupsPanel.Children.Add(Ui.Hint(Loc.T("Koppel eerst een systeem, dan kun je groepen maken.")));
             return;
         }
         notifyList.Children.Add(Ui.Hint(Loc.T("Sensoren ophalen…")));
-        SmartHomePanel.Loaded += async (_, _) => await FillNotifyListAsync(notifyList);
-        if (SmartHomePanel.IsLoaded) _ = FillNotifyListAsync(notifyList);
+        SmartHomePanel.Loaded += async (_, _) => await FillDeviceListsAsync(notifyList, groupsPanel);
+        if (SmartHomePanel.IsLoaded) _ = FillDeviceListsAsync(notifyList, groupsPanel);
     }
 
-    private async Task FillNotifyListAsync(StackPanel list)
+    private async Task FillDeviceListsAsync(StackPanel list, StackPanel groupsPanel)
     {
         var (devices, problems) = await SmartHomeService.GetDevicesAsync(fresh: true);
+        FillGroups(groupsPanel, devices);
         var sensors = devices.Where(d => d.Kind is DeviceKind.Binary or DeviceKind.Event).ToList();
         list.Children.Clear();
         if (sensors.Count == 0)
@@ -488,6 +496,232 @@ public partial class SettingsWindow
             });
             box.Margin = new Thickness(0, 8, 0, 0);
             list.Children.Add(box);
+        }
+    }
+
+    /// <summary>Per groep: de naam en een schakelaar voor elke lamp of schakelaar die erin kan.</summary>
+    private void FillGroups(StackPanel panel, List<SmartDevice> devices)
+    {
+        panel.Children.Clear();
+        var candidates = devices.Where(SmartGroups.CanJoin).ToList();
+        if (candidates.Count == 0) panel.Children.Add(Ui.Hint(Loc.T("Geen lampen of schakelaars gevonden.")));
+
+        void SaveGroups()
+        {
+            _settings.Save();
+            SmartHomeService.Refresh();
+        }
+
+        foreach (var group in _settings.SmartHome.Groups.ToList())
+        {
+            var card = new StackPanel { Margin = new Thickness(0, 12, 0, 0) };
+            card.Children.Add(Ui.Columns((Loc.T("Naam van de groep"), Ui.Field(group.Name, v => { group.Name = v.Trim(); SaveGroups(); }), "*")));
+            foreach (var device in candidates)
+            {
+                var box = Ui.Switch(device.Name, device.Source, group.Devices.Contains(device.Key), on =>
+                {
+                    if (on && !group.Devices.Contains(device.Key)) group.Devices.Add(device.Key);
+                    if (!on) group.Devices.Remove(device.Key);
+                    SaveGroups();
+                });
+                box.Margin = new Thickness(0, 6, 0, 0);
+                card.Children.Add(box);
+            }
+            var remove = Ui.Button(Loc.T("Groep verwijderen"), () =>
+            {
+                _settings.SmartHome.Groups.Remove(group);
+                SaveGroups();
+                FillGroups(panel, devices);
+            });
+            remove.Margin = new Thickness(0, 10, 0, 0);
+            card.Children.Add(remove);
+            panel.Children.Add(card);
+        }
+
+        if (candidates.Count == 0) return;
+        var add = Ui.Button(Loc.T("Nieuwe groep"), () =>
+        {
+            _settings.SmartHome.Groups.Add(new SmartGroupSettings { Name = Loc.T("Nieuwe groep") });
+            SaveGroups();
+            FillGroups(panel, devices);
+        });
+        add.Margin = new Thickness(0, 12, 0, 0);
+        panel.Children.Add(add);
+    }
+
+    // ─────────────────────────── Deurbel (ntfy) ───────────────────────────
+
+    private TextBlock? _doorbellStatus;
+
+    private void BuildDoorbellSection()
+    {
+        DoorbellPanel.Children.Clear();
+        var bell = _settings.Doorbell;
+        _doorbellStatus = Ui.Hint("");
+
+        void Changed()
+        {
+            _settings.Save();
+            App.Instance.ConfigureDoorbell();
+            UpdateDoorbellStatus();
+        }
+
+        DoorbellPanel.Children.Add(Ui.Hint(Loc.T("Laat je deurbel (bijvoorbeeld een ESP32) een bericht sturen naar een onderwerp op ntfy. IdleDash luistert mee, net als de ntfy-app op je telefoon.")));
+        DoorbellPanel.Children.Add(Ui.Switch(Loc.T("Luisteren naar de deurbel"), null, bell.Enabled, v => { bell.Enabled = v; Changed(); }));
+
+        var server = Ui.Field(bell.Server, v => { bell.Server = NtfyService.NormalizeServer(v); Changed(); });
+        var topic = Ui.Field(bell.Topic ?? "", v => { bell.Topic = v.Trim(); Changed(); });
+        DoorbellPanel.Children.Add(Ui.Columns((Loc.T("Server"), server, "*"), (Loc.T("Onderwerp"), topic, "*")));
+        DoorbellPanel.Children.Add(Ui.Row(Ui.Button(Loc.T("Willekeurige naam maken"), () =>
+        {
+            const string letters = "abcdefghijkmnpqrstuvwxyz23456789";
+            string name = "deurbel-" + new string(Enumerable.Range(0, 12).Select(_ => letters[Random.Shared.Next(letters.Length)]).ToArray());
+            topic.Text = name;
+            bell.Topic = name;
+            Changed();
+        })));
+        DoorbellPanel.Children.Add(Ui.Hint(Loc.T("Kies een lange, moeilijk te raden naam: op ntfy.sh kan iedereen meelezen die de naam kent. Je deurbel stuurt een gewoon webverzoek (POST) naar de server met daarachter / en het onderwerp.")));
+
+        DoorbellPanel.Children.Add(Ui.Label(Loc.T("Token (alleen bij een beveiligd onderwerp)")));
+        var token = new PasswordBox { Password = Secrets.Unprotect(bell.Token) ?? "" };
+        token.LostFocus += (_, _) =>
+        {
+            bell.Token = token.Password.Length > 0 ? Secrets.Protect(token.Password) : null;
+            Changed();
+        };
+        DoorbellPanel.Children.Add(token);
+
+        DoorbellPanel.Children.Add(Ui.Switch(Loc.T("Muziek pauzeren als de bel gaat"), null, bell.PauseMusic, v => { bell.PauseMusic = v; _settings.Save(); }));
+
+        DoorbellPanel.Children.Add(Ui.Label(Loc.T("Geluid")));
+        DoorbellPanel.Children.Add(Ui.Combo(new[]
+        {
+            (Loc.T("Ingebouwde dingdong"), "builtin"), (Loc.T("Eigen geluid"), "custom"), (Loc.T("Geen geluid"), "none"),
+        }, bell.Sound, v =>
+        {
+            bell.Sound = v;
+            _settings.Save();
+            BuildDoorbellSection();
+        }));
+        if (bell.Sound == "custom")
+        {
+            var soundName = Ui.Hint(bell.SoundFile != null && File.Exists(bell.SoundFile) ? Loc.T("Gekozen.") : Loc.T("Nog geen geluid gekozen."));
+            DoorbellPanel.Children.Add(Ui.Row(Ui.Button(Loc.T("Geluid kiezen…"), () =>
+            {
+                var dialog = new Microsoft.Win32.OpenFileDialog { Filter = Loc.T("Geluiden") + " (*.mp3, *.wav, *.wma, *.m4a)|*.mp3;*.wav;*.wma;*.m4a" };
+                if (dialog.ShowDialog(this) != true) return;
+                if (DoorbellSound.ImportCustom(dialog.FileName) is not { } copy)
+                {
+                    soundName.Text = Loc.T("Dit bestand kon niet gekopieerd worden.");
+                    return;
+                }
+                bell.SoundFile = copy;
+                _settings.Save();
+                soundName.Text = Loc.T("Gekozen: {0}", Path.GetFileName(dialog.FileName));
+            })));
+            DoorbellPanel.Children.Add(soundName);
+        }
+
+        DoorbellPanel.Children.Add(Ui.Row(
+            Ui.Button(Loc.T("Test op deze pc"), () => App.Instance.TestDoorbell()),
+            Ui.Button(Loc.T("Testbericht via ntfy"), async () =>
+            {
+                _doorbellStatus.Text = Loc.T("Versturen…");
+                string? error = await NtfyService.SendTestAsync(bell.Server, bell.Topic, Secrets.Unprotect(bell.Token), Loc.T("Test vanuit IdleDash"));
+                _doorbellStatus.Text = error ?? Loc.T("Verstuurd. Staat alles goed, dan gaat nu de bel op deze pc en op je telefoon.");
+            })));
+        DoorbellPanel.Children.Add(_doorbellStatus);
+        UpdateDoorbellStatus();
+    }
+
+    private void UpdateDoorbellStatus()
+    {
+        if (_doorbellStatus == null) return;
+        var bell = _settings.Doorbell;
+        _doorbellStatus.Text = !bell.Enabled ? Loc.T("Staat uit.")
+            : !NtfyService.IsValidTopic(bell.Topic) ? Loc.T("Vul een onderwerp in: letters, cijfers, - en _.")
+            : NtfyService.Problem ?? Loc.T("IdleDash luistert mee.");
+    }
+
+    // ─────────────────────────── Back-up ───────────────────────────
+
+    private void BuildBackupSection()
+    {
+        BackupPanel.Children.Clear();
+        var status = Ui.Hint("");
+        BackupPanel.Children.Add(Ui.Hint(Loc.T("Een back-up bevat je indeling, widgets, thema's en koppelingen. Wachtwoorden en tokens werken alleen op deze pc met dit Windows-account. Je Google-login zit er niet in.")));
+        BackupPanel.Children.Add(Ui.Row(
+            Ui.Button(Loc.T("Back-up maken…"), () =>
+            {
+                var dialog = new Microsoft.Win32.SaveFileDialog
+                {
+                    FileName = $"IdleDash-back-up-{DateTime.Now:yyyy-MM-dd}.json",
+                    Filter = Loc.T("Back-up van IdleDash") + " (*.json)|*.json",
+                };
+                if (dialog.ShowDialog(this) != true) return;
+                try
+                {
+                    File.WriteAllText(dialog.FileName, BackupService.Create(_settings, AppInfo.VersionText, DateTime.Now));
+                    status.Text = Loc.T("Back-up opgeslagen.");
+                }
+                catch (Exception ex)
+                {
+                    status.Text = Loc.T("Opslaan lukte niet: {0}", ex.Message);
+                }
+            }, accent: true),
+            Ui.Button(Loc.T("Terugzetten…"), () =>
+            {
+                var dialog = new Microsoft.Win32.OpenFileDialog { Filter = Loc.T("Back-up van IdleDash") + " (*.json)|*.json" };
+                if (dialog.ShowDialog(this) == true) Restore(File.ReadAllText(dialog.FileName), status);
+            })));
+        BackupPanel.Children.Add(Ui.Switch(Loc.T("Elke dag automatisch een back-up maken"), Loc.T("De laatste 10 blijven bewaard."), _settings.AutoBackup,
+            v => { _settings.AutoBackup = v; _settings.Save(); }));
+
+        var automatic = BackupService.ListAutomatic();
+        if (automatic.Count > 0)
+        {
+            BackupPanel.Children.Add(Ui.Label(Loc.T("Automatische back-ups")));
+            foreach (var (path, date) in automatic)
+            {
+                var row = new Grid { Margin = new Thickness(0, 6, 0, 0) };
+                row.ColumnDefinitions.Add(new ColumnDefinition());
+                row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+                row.Children.Add(new TextBlock { Text = Loc.Date(date), VerticalAlignment = VerticalAlignment.Center });
+                var button = Ui.Button(Loc.T("Terugzetten"), () => Restore(File.ReadAllText(path), status));
+                button.Margin = new Thickness(10, 0, 0, 0);
+                Grid.SetColumn(button, 1);
+                row.Children.Add(button);
+                BackupPanel.Children.Add(row);
+            }
+            BackupPanel.Children.Add(Ui.Row(Ui.Button(Loc.T("Map met back-ups openen"), () =>
+                System.Diagnostics.Process.Start("explorer.exe", $"\"{BackupService.AutoFolder}\""))));
+        }
+        BackupPanel.Children.Add(status);
+    }
+
+    private void Restore(string content, TextBlock status)
+    {
+        string? json = BackupService.Validate(content, out string? error);
+        if (json == null)
+        {
+            status.Text = error ?? "";
+            return;
+        }
+        var created = BackupService.CreatedAt(content);
+        var (ok, _) = Dialogs.Confirm(Loc.T("Back-up terugzetten?"),
+            created is DateTime date
+                ? Loc.T("Je huidige instellingen worden vervangen door die van {0}. IdleDash start daarvoor even opnieuw.", Loc.Date(date))
+                : Loc.T("Je huidige instellingen worden vervangen door die uit de back-up. IdleDash start daarvoor even opnieuw."),
+            Loc.T("Terugzetten"));
+        if (!ok) return;
+        try
+        {
+            BackupService.ScheduleRestore(json, AppInfo.VersionText);
+            App.Instance.Restart();
+        }
+        catch (Exception ex)
+        {
+            status.Text = Loc.T("Terugzetten lukte niet: {0}", ex.Message);
         }
     }
 }

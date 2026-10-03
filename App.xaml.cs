@@ -30,6 +30,7 @@ public partial class App : Application
             return;
         }
 
+        bool restored = BackupService.ApplyPendingRestore();   // klaargezette back-up eerst terugzetten
         Settings = AppSettings.Load();
 
         // Taal, thema, agenda's en smarthome klaarzetten voordat er iets op het scherm komt
@@ -37,6 +38,8 @@ public partial class App : Application
         ThemeManager.ApplyGlobal(Settings.Theme);
         CalendarHub.Configure(Settings);
         SmartHomeService.Configure(Settings);
+        NtfyService.Received += OnDoorbell;
+        ConfigureDoorbell();
         Loc.Changed += () => Dispatcher.BeginInvoke(ReopenSettings);
 
         var dashboard = new MainWindow(Settings);
@@ -54,6 +57,10 @@ public partial class App : Application
 
         dashboard.Start();
         ShowWhatsNewIfUpdated();
+        if (restored) Notify(Loc.T("Back-up teruggezet"), Loc.T("IdleDash draait weer met de instellingen uit de back-up."));
+        RunAutoBackup();
+        _backupTimer.Tick += (_, _) => RunAutoBackup();
+        _backupTimer.Start();
         ShowWelcomeOnce();
 
         // Updates: zoeken, op de achtergrond downloaden en "Bijwerken" in het systeemvak-menu zetten
@@ -125,6 +132,60 @@ public partial class App : Application
         _settingsWindow.Closed += (_, _) => _settingsWindow = null;
         _settingsWindow.Show();
         _settingsWindow.Activate();
+    }
+
+    private readonly System.Windows.Threading.DispatcherTimer _backupTimer = new() { Interval = TimeSpan.FromHours(6) };
+
+    /// <summary>Opnieuw gaan luisteren naar de deurbel (na het opstarten of als de instellingen veranderen).</summary>
+    public void ConfigureDoorbell()
+    {
+        var bell = Settings.Doorbell;
+        NtfyService.Configure(bell.Enabled, bell.Server, bell.Topic, Secrets.Unprotect(bell.Token));
+    }
+
+    /// <summary>De deurbel gaat: melding tonen, muziek pauzeren en het geluid afspelen.</summary>
+    private async void OnDoorbell(NtfyMessage message)
+    {
+        string title = string.IsNullOrWhiteSpace(message.Title) ? Loc.T("Deurbel") : message.Title;
+        string text = string.IsNullOrWhiteSpace(message.Message) || message.Message == "triggered"
+            ? Loc.T("Er staat iemand voor de deur.")
+            : message.Message;
+        if (_dashboard != null) _dashboard.ShowAlert(title, text);
+        else Notify(title, text);
+        if (Settings.Doorbell.PauseMusic) await MediaControl.PauseAllAsync();
+        DoorbellSound.Play(Settings.Doorbell);
+    }
+
+    /// <summary>De deurbel nadoen, om te testen (zonder ntfy).</summary>
+    public void TestDoorbell() =>
+        OnDoorbell(new NtfyMessage("test-" + DateTime.Now.Ticks, DateTimeOffset.UtcNow, Loc.T("Deurbel"), Loc.T("Dit is een test.")));
+
+    private void RunAutoBackup()
+    {
+        if (!Settings.AutoBackup) return;
+        try
+        {
+            BackupService.AutoBackup(Settings, AppInfo.VersionText, DateTime.Now);
+        }
+        catch
+        {
+            // geen back-up gelukt (bv. schijf vol): volgende keer opnieuw
+        }
+    }
+
+    /// <summary>IdleDash afsluiten en een paar seconden later opnieuw starten (bv. na het terugzetten van een back-up).</summary>
+    public void Restart()
+    {
+        string? exe = Environment.ProcessPath;
+        if (exe != null)
+        {
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("cmd.exe", $"/c ping 127.0.0.1 -n 3 > nul & start \"\" \"{exe}\"")
+            {
+                CreateNoWindow = true,
+                UseShellExecute = false,
+            });
+        }
+        Shutdown();
     }
 
     /// <summary>Andere taal gekozen: het instellingenvenster opnieuw openen, op dezelfde plek.</summary>

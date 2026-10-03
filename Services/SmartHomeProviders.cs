@@ -8,9 +8,9 @@ using IdleDash.Core;
 
 namespace IdleDash.Services;
 
-public enum DeviceKind { Light, Switch, Scene, Script, Button, Sensor, Binary, Event, Lock, Alarm, Cover, Climate }
+public enum DeviceKind { Light, Switch, Scene, Script, Button, Sensor, Binary, Event, Lock, Alarm, Cover, Climate, Group }
 
-public enum SmartAction { Toggle, Brightness, Activate, Lock, Unlock, Arm, Disarm, Open, Close, Stop }
+public enum SmartAction { Toggle, Brightness, Activate, Lock, Unlock, Arm, Disarm, Open, Close, Stop, TurnOn, TurnOff, SetColor, SetTemperature }
 
 /// <summary>Eén apparaat, sensor of scène uit een smarthome-systeem.</summary>
 public record SmartDevice(
@@ -22,14 +22,20 @@ public record SmartDevice(
     string? Value,           // tekst voor sensoren, bv. "21,5 °C"
     string Source,           // "Home Assistant", "Philips Hue", "Shelly"
     bool Sensitive,          // slot, alarm, garagedeur: altijd met bevestiging
-    bool NeedsCode = false); // alarm met pincode
+    bool NeedsCode = false,  // alarm met pincode
+    LightColor? Color = null); // wat een lamp met kleur en wittint kan, en hoe hij nu staat
+
+/// <summary>Kleurmogelijkheden van een lamp en zijn huidige kleur (tint 0-360, verzadiging 0-100) of wittint (Kelvin).</summary>
+public record LightColor(bool SupportsColor, bool SupportsTemperature, int MinKelvin, int MaxKelvin,
+    double? Hue, double? Saturation, int? Kelvin);
 
 public interface ISmartProvider
 {
     string Name { get; }
     string Prefix { get; }
     Task<List<SmartDevice>> GetDevicesAsync(CancellationToken cancel);
-    Task InvokeAsync(SmartDevice device, SmartAction action, int? value, string? code, CancellationToken cancel);
+    /// <summary>value: helderheid (%), tint (SetColor) of Kelvin (SetTemperature). value2: verzadiging bij SetColor.</summary>
+    Task InvokeAsync(SmartDevice device, SmartAction action, int? value, int? value2, string? code, CancellationToken cancel);
 }
 
 internal static class SmartHttp
@@ -90,9 +96,9 @@ public sealed class HomeAssistantProvider : ISmartProvider
         return ParseStates(await response.Content.ReadAsStringAsync(cancel));
     }
 
-    public async Task InvokeAsync(SmartDevice device, SmartAction action, int? value, string? code, CancellationToken cancel)
+    public async Task InvokeAsync(SmartDevice device, SmartAction action, int? value, int? value2, string? code, CancellationToken cancel)
     {
-        var plan = Plan(device, action, value, code) ?? throw new InvalidOperationException(Loc.T("Dit kan niet bij dit apparaat."));
+        var plan = Plan(device, action, value, code, value2) ?? throw new InvalidOperationException(Loc.T("Dit kan niet bij dit apparaat."));
         using var response = await Send(HttpMethod.Post, "api/services/" + plan.Service, JsonSerializer.Serialize(plan.Body), cancel);
         if (response.StatusCode == HttpStatusCode.Unauthorized) throw new UnauthorizedAccessException();
         response.EnsureSuccessStatusCode();
@@ -107,7 +113,7 @@ public sealed class HomeAssistantProvider : ISmartProvider
     }
 
     /// <summary>Welke dienst (domein/service) en welke gegevens bij een actie horen.</summary>
-    public static (string Service, Dictionary<string, object> Body)? Plan(SmartDevice device, SmartAction action, int? value, string? code)
+    public static (string Service, Dictionary<string, object> Body)? Plan(SmartDevice device, SmartAction action, int? value, string? code, int? value2 = null)
     {
         string entity = device.Key.StartsWith("ha:") ? device.Key[3..] : device.Key;
         string domain = entity.Split('.')[0];
@@ -117,6 +123,9 @@ public sealed class HomeAssistantProvider : ISmartProvider
         string? service = (domain, action) switch
         {
             ("light", SmartAction.Toggle) => "light/toggle",
+            ("light" or "switch" or "input_boolean" or "fan" or "siren" or "humidifier", SmartAction.TurnOn) => domain + "/turn_on",
+            ("light" or "switch" or "input_boolean" or "fan" or "siren" or "humidifier", SmartAction.TurnOff) => domain + "/turn_off",
+            ("light", SmartAction.SetColor or SmartAction.SetTemperature) => "light/turn_on",
             ("light", SmartAction.Brightness) => "light/turn_on",
             ("switch" or "input_boolean" or "fan" or "siren" or "humidifier", SmartAction.Toggle) => domain + "/toggle",
             ("scene", SmartAction.Activate) => "scene/turn_on",
@@ -134,7 +143,39 @@ public sealed class HomeAssistantProvider : ISmartProvider
         };
         if (service == null) return null;
         if (action == SmartAction.Brightness) body["brightness_pct"] = Math.Clamp(value ?? 100, 1, 100);
+        if (action == SmartAction.SetColor) body["hs_color"] = new[] { Math.Clamp(value ?? 0, 0, 360), Math.Clamp(value2 ?? 100, 0, 100) };
+        if (action == SmartAction.SetTemperature) body["color_temp_kelvin"] = Math.Clamp(value ?? 4000, 1000, 12000);
         return (service, body);
+    }
+
+    /// <summary>Kleur en wittint van een lamp, uit supported_color_modes en de huidige stand.</summary>
+    internal static LightColor? HaColor(JsonElement attributes)
+    {
+        var modes = new List<string>();
+        if (attributes.ValueKind == JsonValueKind.Object && attributes.TryGetProperty("supported_color_modes", out var list) && list.ValueKind == JsonValueKind.Array)
+            foreach (var m in list.EnumerateArray())
+                if (m.ValueKind == JsonValueKind.String) modes.Add(m.GetString()!);
+        bool color = modes.Any(m => m is "hs" or "xy" or "rgb" or "rgbw" or "rgbww");
+        bool temperature = modes.Contains("color_temp");
+        if (!color && !temperature) return null;
+
+        double? hue = null, saturation = null;
+        int? kelvin = null;
+        string mode = SmartHttp.Str(attributes, "color_mode") ?? "";
+        if (mode == "color_temp")
+        {
+            kelvin = SmartHttp.Num(attributes, "color_temp_kelvin") is double k ? (int)Math.Round(k) : null;
+        }
+        else if (attributes.ValueKind == JsonValueKind.Object && attributes.TryGetProperty("hs_color", out var hs)
+                 && hs.ValueKind == JsonValueKind.Array && hs.GetArrayLength() == 2
+                 && hs[0].ValueKind == JsonValueKind.Number && hs[1].ValueKind == JsonValueKind.Number)
+        {
+            hue = hs[0].GetDouble();
+            saturation = hs[1].GetDouble();
+        }
+        int min = SmartHttp.Num(attributes, "min_color_temp_kelvin") is double lo ? (int)lo : 2000;
+        int max = SmartHttp.Num(attributes, "max_color_temp_kelvin") is double hi ? (int)hi : 6500;
+        return new LightColor(color, temperature, min, max, hue, saturation, kelvin);
     }
 
     public static List<SmartDevice> ParseStates(string json)
@@ -156,7 +197,7 @@ public sealed class HomeAssistantProvider : ISmartProvider
             SmartDevice? device = domain switch
             {
                 "light" => new(id, name, DeviceKind.Light, on,
-                    SmartHttp.Num(attributes, "brightness") is double b ? (int)Math.Round(b / 255 * 100) : on == true ? 100 : 0, null, "Home Assistant", false),
+                    SmartHttp.Num(attributes, "brightness") is double b ? (int)Math.Round(b / 255 * 100) : on == true ? 100 : 0, null, "Home Assistant", false, Color: HaColor(attributes)),
                 "switch" or "input_boolean" or "fan" or "siren" or "humidifier" => new(id, name, DeviceKind.Switch, on, null, null, "Home Assistant", false),
                 "scene" => new(id, name, DeviceKind.Scene, null, null, null, "Home Assistant", false),
                 "script" => new(id, name, DeviceKind.Script, state == "on", null, null, "Home Assistant", false),
@@ -252,7 +293,7 @@ public sealed class HueProvider : ISmartProvider
         return json;
     }
 
-    public async Task InvokeAsync(SmartDevice device, SmartAction action, int? value, string? code, CancellationToken cancel)
+    public async Task InvokeAsync(SmartDevice device, SmartAction action, int? value, int? value2, string? code, CancellationToken cancel)
     {
         var parts = device.Key.Split(':');   // hue:light:3, hue:group:1, hue:scene:abc:1
         string? path = null, body = null;
@@ -266,6 +307,13 @@ public sealed class HueProvider : ISmartProvider
                 path = $"groups/{parts[2]}/action"; body = $"{{\"on\":{(device.IsOn == true ? "false" : "true")}}}"; break;
             case ("group", SmartAction.Brightness):
                 path = $"groups/{parts[2]}/action"; body = $"{{\"on\":true,\"bri\":{Bri(value)}}}"; break;
+            case ("light" or "group", SmartAction.TurnOn or SmartAction.TurnOff):
+                path = Target(parts); body = action == SmartAction.TurnOn ? "{\"on\":true}" : "{\"on\":false}"; break;
+            case ("light" or "group", SmartAction.SetColor):
+                path = Target(parts);
+                body = $"{{\"on\":true,\"hue\":{ColorMath.ToHueApiHue(value ?? 0)},\"sat\":{ColorMath.ToHueApiSat(value2 ?? 100)}}}"; break;
+            case ("light" or "group", SmartAction.SetTemperature):
+                path = Target(parts); body = $"{{\"on\":true,\"ct\":{Math.Clamp(ColorMath.KelvinToMired(value ?? 4000), 153, 500)}}}"; break;
             case ("scene", SmartAction.Activate) when parts.Length >= 4:
                 path = $"groups/{parts[3]}/action"; body = $"{{\"scene\":\"{parts[2]}\"}}"; break;
         }
@@ -290,6 +338,26 @@ public sealed class HueProvider : ISmartProvider
         }
     }
 
+    private static string Target(string[] parts) => parts[1] == "light" ? $"lights/{parts[2]}/state" : $"groups/{parts[2]}/action";
+
+    /// <summary>Kleur en wittint van een Hue-lamp (of kamer: dan zonder type, op basis van wat de kamer meldt).</summary>
+    internal static LightColor? HueColor(string? type, JsonElement state, JsonElement ctRange)
+    {
+        bool color = type is "Extended color light" or "Color light" || (type == null && SmartHttp.Num(state, "hue") != null);
+        bool temperature = type is "Extended color light" or "Color temperature light" || (type == null && SmartHttp.Num(state, "ct") != null);
+        if (!color && !temperature) return null;
+
+        double? hue = null, saturation = null;
+        int? kelvin = null;
+        if (SmartHttp.Str(state, "colormode") == "ct" && SmartHttp.Num(state, "ct") is double ct)
+            kelvin = ColorMath.MiredToKelvin((int)ct);
+        else if (color && SmartHttp.Num(state, "hue") is double h && SmartHttp.Num(state, "sat") is double s)
+            (hue, saturation) = (ColorMath.FromHueApiHue(h), ColorMath.FromHueApiSat(s));
+        int minMired = SmartHttp.Num(ctRange, "min") is double lo ? (int)lo : 153;
+        int maxMired = SmartHttp.Num(ctRange, "max") is double hi ? (int)hi : 500;
+        return new LightColor(color, temperature, ColorMath.MiredToKelvin(maxMired), ColorMath.MiredToKelvin(minMired), hue, saturation, kelvin);
+    }
+
     public static List<SmartDevice> ParseLights(string json)
     {
         var list = new List<SmartDevice>();
@@ -301,7 +369,9 @@ public sealed class HueProvider : ISmartProvider
             bool reachable = SmartHttp.Bool(state, "reachable") ?? true;
             bool? on = reachable ? SmartHttp.Bool(state, "on") : null;
             int? bri = SmartHttp.Num(state, "bri") is double b ? (int)Math.Round(b / 2.54) : null;
-            list.Add(new SmartDevice($"hue:light:{p.Name}", SmartHttp.Str(p.Value, "name") ?? p.Name, DeviceKind.Light, on, bri, null, "Philips Hue", false));
+            var ctRange = SmartHttp.Obj(SmartHttp.Obj(SmartHttp.Obj(p.Value, "capabilities"), "control"), "ct");
+            list.Add(new SmartDevice($"hue:light:{p.Name}", SmartHttp.Str(p.Value, "name") ?? p.Name, DeviceKind.Light, on, bri, null, "Philips Hue", false,
+                Color: HueColor(SmartHttp.Str(p.Value, "type"), state, ctRange)));
         }
         return list;
     }
@@ -317,7 +387,8 @@ public sealed class HueProvider : ISmartProvider
             if (type is not ("Room" or "Zone")) continue;
             bool? on = SmartHttp.Bool(SmartHttp.Obj(p.Value, "state"), "any_on");
             int? bri = SmartHttp.Num(SmartHttp.Obj(p.Value, "action"), "bri") is double b ? (int)Math.Round(b / 2.54) : null;
-            list.Add(new SmartDevice($"hue:group:{p.Name}", SmartHttp.Str(p.Value, "name") ?? p.Name, DeviceKind.Light, on, bri, null, "Philips Hue", false));
+            list.Add(new SmartDevice($"hue:group:{p.Name}", SmartHttp.Str(p.Value, "name") ?? p.Name, DeviceKind.Light, on, bri, null, "Philips Hue", false,
+                Color: HueColor(null, SmartHttp.Obj(p.Value, "action"), default)));
         }
         return list;
     }
@@ -444,7 +515,7 @@ public sealed class ShellyProvider : ISmartProvider
         return gen;
     }
 
-    public async Task InvokeAsync(SmartDevice device, SmartAction action, int? value, string? code, CancellationToken cancel)
+    public async Task InvokeAsync(SmartDevice device, SmartAction action, int? value, int? value2, string? code, CancellationToken cancel)
     {
         string host = device.Key.Split(':')[1];
         int gen = await GenerationAsync(host, cancel);
@@ -465,6 +536,10 @@ public sealed class ShellyProvider : ISmartProvider
             return (kind, action) switch
             {
                 ("switch", SmartAction.Toggle) => $"http://{host}/rpc/Switch.Toggle?id={id}",
+                ("switch", SmartAction.TurnOn) => $"http://{host}/rpc/Switch.Set?id={id}&on=true",
+                ("switch", SmartAction.TurnOff) => $"http://{host}/rpc/Switch.Set?id={id}&on=false",
+                ("light", SmartAction.TurnOn) => $"http://{host}/rpc/Light.Set?id={id}&on=true",
+                ("light", SmartAction.TurnOff) => $"http://{host}/rpc/Light.Set?id={id}&on=false",
                 ("light", SmartAction.Toggle) => $"http://{host}/rpc/Light.Toggle?id={id}",
                 ("light", SmartAction.Brightness) => $"http://{host}/rpc/Light.Set?id={id}&on=true&brightness={brightness}",
                 ("cover", SmartAction.Open) => $"http://{host}/rpc/Cover.Open?id={id}",
@@ -476,6 +551,10 @@ public sealed class ShellyProvider : ISmartProvider
         return (kind, action) switch
         {
             ("switch", SmartAction.Toggle) => $"http://{host}/relay/{id}?turn=toggle",
+            ("switch", SmartAction.TurnOn) => $"http://{host}/relay/{id}?turn=on",
+            ("switch", SmartAction.TurnOff) => $"http://{host}/relay/{id}?turn=off",
+            ("light", SmartAction.TurnOn) => $"http://{host}/light/{id}?turn=on",
+            ("light", SmartAction.TurnOff) => $"http://{host}/light/{id}?turn=off",
             ("light", SmartAction.Toggle) => $"http://{host}/light/{id}?turn=toggle",
             ("light", SmartAction.Brightness) => $"http://{host}/light/{id}?turn=on&brightness={brightness}",
             ("cover", SmartAction.Open) => $"http://{host}/roller/{id}?go=open",
@@ -553,6 +632,71 @@ public sealed class ShellyProvider : ISmartProvider
         Add("relays", "switch", DeviceKind.Switch);
         Add("lights", "light", DeviceKind.Light);
         Add("rollers", "cover", DeviceKind.Cover);
+        return list;
+    }
+}
+
+
+// ═══════════════════════════ Eigen groepen ═══════════════════════════
+
+/// <summary>Groepen die je in IdleDash zelf maakt: lampen en schakelaars van verschillende merken als één tegel.</summary>
+public static class SmartGroups
+{
+    public const string KeyPrefix = "group:";
+
+    /// <summary>Wat er in een groep mag: lampen en schakelaars (geen sloten, alarm of deuren).</summary>
+    public static bool CanJoin(SmartDevice device) =>
+        device.Kind is DeviceKind.Light or DeviceKind.Switch && !device.Sensitive && !device.Key.StartsWith(KeyPrefix);
+
+    public static List<SmartDevice> Build(IEnumerable<SmartGroupSettings> groups, IReadOnlyList<SmartDevice> devices)
+    {
+        var list = new List<SmartDevice>();
+        foreach (var group in groups)
+        {
+            var members = devices.Where(d => group.Devices.Contains(d.Key) && CanJoin(d)).ToList();
+            var known = members.Where(m => m.IsOn != null).ToList();
+            bool? on = known.Count == 0 ? null : known.Any(m => m.IsOn == true);
+            var lit = members.Where(m => m.IsOn == true && m.Kind == DeviceKind.Light && m.Brightness is > 0).ToList();
+            int? brightness = members.Any(m => m.Kind == DeviceKind.Light)
+                ? lit.Count > 0 ? (int)Math.Round(lit.Average(m => m.Brightness!.Value)) : 0
+                : null;
+
+            var colors = members.Select(m => m.Color).OfType<LightColor>().ToList();
+            LightColor? color = null;
+            if (colors.Count > 0)
+            {
+                var current = members.Where(m => m.IsOn == true).Select(m => m.Color).OfType<LightColor>().FirstOrDefault() ?? colors[0];
+                var temps = colors.Where(c => c.SupportsTemperature).ToList();
+                color = new LightColor(colors.Any(c => c.SupportsColor), temps.Count > 0,
+                    temps.Count > 0 ? temps.Min(c => c.MinKelvin) : 2000, temps.Count > 0 ? temps.Max(c => c.MaxKelvin) : 6500,
+                    current.Hue, current.Saturation, current.Kelvin);
+            }
+            string value = Loc.T("{0} van {1} aan", members.Count(m => m.IsOn == true), members.Count);
+            list.Add(new SmartDevice(KeyPrefix + group.Id, group.Name, DeviceKind.Group, on, brightness, value, Loc.T("Groep"), false, Color: color));
+        }
+        return list;
+    }
+
+    /// <summary>
+    /// Welke opdracht elk lid krijgt. De aan/uit-knop: brandt er iets in de groep, dan gaat alles uit, anders alles aan.
+    /// Kleur en wittint gaan alleen naar lampen die dat kunnen.
+    /// </summary>
+    public static List<(SmartDevice Member, SmartAction Action)> Plan(SmartDevice group, IEnumerable<SmartDevice> members, SmartAction action)
+    {
+        var list = new List<(SmartDevice, SmartAction)>();
+        foreach (var member in members)
+        {
+            SmartAction? step = action switch
+            {
+                SmartAction.Toggle => group.IsOn == true ? SmartAction.TurnOff : SmartAction.TurnOn,
+                SmartAction.TurnOn or SmartAction.TurnOff => action,
+                SmartAction.Brightness when member.Kind == DeviceKind.Light => action,
+                SmartAction.SetColor when member.Color?.SupportsColor == true => action,
+                SmartAction.SetTemperature when member.Color?.SupportsTemperature == true => action,
+                _ => null,
+            };
+            if (step != null) list.Add((member, step.Value));
+        }
         return list;
     }
 }

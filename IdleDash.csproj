@@ -41,6 +41,7 @@
 
   <ItemGroup>
     <Resource Include="Assets\IdleDash.ico" />
+    <Resource Include="Assets\dingdong.wav" />
   </ItemGroup>
 
   <!-- Ingebouwde Google-sleutel voor de officiële download. Wordt alleen ingevuld als GitHub

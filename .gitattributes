@@ -1,0 +1,13 @@
+# Regeleindes automatisch goed zetten (oorspronkelijk door Visual Studio aangemaakt)
+* text=auto
+
+*.cs      diff=csharp
+*.sln     merge=union
+*.csproj  merge=union
+
+# Binaire bestanden nooit aanpassen
+*.png  binary
+*.jpg  binary
+*.ico  binary
+*.wav  binary
+*.mp3  binary

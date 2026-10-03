@@ -40,6 +40,10 @@ public partial class SettingsWindow : Window
         BuildAppleSection();
         BuildIcsSection();
         BuildSmartHomeSection();
+        BuildDoorbellSection();
+        BuildBackupSection();
+        NtfyService.StatusChanged += UpdateDoorbellStatus;
+        Closed += (_, _) => NtfyService.StatusChanged -= UpdateDoorbellStatus;
 
         UpdateGoogleSection();
         GoogleService.StateChanged += UpdateGoogleSection;

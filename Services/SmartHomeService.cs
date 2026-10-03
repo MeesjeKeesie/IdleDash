@@ -91,12 +91,15 @@ public static class SmartHomeService
                 problems.Add(Loc.T("{0}: niet bereikbaar", provider.Name));
             }
         }
+        devices.AddRange(SmartGroups.Build(_settings.SmartHome.Groups, devices));
         return (devices, problems);
     }
 
     /// <summary>Een actie uitvoeren. Geeft een foutmelding terug, of null als het gelukt is.</summary>
-    public static async Task<string?> InvokeAsync(SmartDevice device, SmartAction action, int? value = null, string? code = null)
+    public static async Task<string?> InvokeAsync(SmartDevice device, SmartAction action, int? value = null, string? code = null, int? value2 = null)
     {
+        if (device.Kind == DeviceKind.Group) return await InvokeGroupAsync(device, action, value, value2);
+
         if (device.Sensitive && !_settings.SmartHome.AllowSensitive)
             return Loc.T("Sloten en alarm bedienen staat uit in de instellingen.");
 
@@ -105,7 +108,7 @@ public static class SmartHomeService
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
         try
         {
-            await provider.InvokeAsync(device, action, value, code, timeout.Token);
+            await provider.InvokeAsync(device, action, value, value2, code, timeout.Token);
             _cache = null;
             return null;
         }
@@ -121,6 +124,27 @@ public static class SmartHomeService
         {
             return Loc.T("{0}: niet bereikbaar", provider.Name);
         }
+    }
+
+    /// <summary>Een eigen groep bedienen: de opdracht gaat tegelijk naar alle lampen en schakelaars erin.</summary>
+    private static async Task<string?> InvokeGroupAsync(SmartDevice group, SmartAction action, int? value, int? value2)
+    {
+        var settings = _settings.SmartHome.Groups.FirstOrDefault(g => SmartGroups.KeyPrefix + g.Id == group.Key);
+        if (settings == null) return Loc.T("Deze groep bestaat niet meer.");
+        var (devices, _) = await GetDevicesAsync();
+        var members = devices.Where(d => settings.Devices.Contains(d.Key)).ToList();
+        var plan = SmartGroups.Plan(group, members, action);
+        if (plan.Count == 0) return Loc.T("Dit kan niet bij dit apparaat.");
+        var results = await Task.WhenAll(plan.Select(step => InvokeAsync(step.Member, step.Action, value, null, value2)));
+        _cache = null;
+        return results.FirstOrDefault(r => r != null);
+    }
+
+    /// <summary>Groepen of keuzes veranderd: alles opnieuw ophalen en de widgets laten bijwerken.</summary>
+    public static void Refresh()
+    {
+        _cache = null;
+        Reconfigured?.Invoke();
     }
 
     // ─────────────────────────── Meldingen (deurbel, beweging) ───────────────────────────

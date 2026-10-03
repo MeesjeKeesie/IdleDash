@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
@@ -23,6 +24,7 @@ public sealed class SmartHomeWidget : WidgetBase
     private List<string> _problems = new();
     private (SmartDevice Device, int Value)? _pendingDim;
     private bool _loading;
+    private Popup? _popup;
 
     public SmartHomeWidget()
     {
@@ -112,6 +114,7 @@ public sealed class SmartHomeWidget : WidgetBase
 
     private void Render()
     {
+        if (_popup?.IsOpen == true) return;   // niet ombouwen terwijl de kleurkiezer open is
         if (_devices.Count == 0 && Selected.Count > 0 && SmartHomeService.HasAnySystem)
         {
             ShowMessage(_problems.Count > 0 ? _problems[0] : Loc.T("De gekozen apparaten zijn niet gevonden."), appSettings: _problems.Count > 0);
@@ -130,7 +133,7 @@ public sealed class SmartHomeWidget : WidgetBase
 
     private Border CreateTile(SmartDevice device, double width)
     {
-        bool on = device.IsOn == true && device.Kind is DeviceKind.Light or DeviceKind.Switch or DeviceKind.Binary or DeviceKind.Cover;
+        bool on = device.IsOn == true && device.Kind is DeviceKind.Light or DeviceKind.Switch or DeviceKind.Binary or DeviceKind.Cover or DeviceKind.Group;
         var accent = ((SolidColorBrush)Res("BarBrush")).Color;
         var tile = new Border
         {
@@ -139,7 +142,7 @@ public sealed class SmartHomeWidget : WidgetBase
             Margin = new Thickness(0, 0, 10, 10),
             Padding = new Thickness(12, 10, 12, 10),
             CornerRadius = new CornerRadius(14),
-            Background = on ? new SolidColorBrush(Color.FromArgb(0x4D, accent.R, accent.G, accent.B)) : Res("SubtleBrush"),
+            Background = on ? TileBrush(device, accent) : Res("SubtleBrush"),
             Cursor = IsControllable(device) ? Cursors.Hand : Cursors.Arrow,
             ToolTip = device.Source,
         };
@@ -157,12 +160,27 @@ public sealed class SmartHomeWidget : WidgetBase
         var state = Text(StateText(device), 13, "TextSecondaryBrush");
         Grid.SetRow(state, 2);
         content.Children.Add(icon);
+        if (device.Kind is DeviceKind.Light or DeviceKind.Group && (device.Brightness != null || device.Color != null))
+        {
+            // Klik op de tegel = aan/uit; dit knopje opent kleur, wit en helderheid
+            var palette = new Button
+            {
+                Content = "\uE790",
+                ToolTip = Loc.T("Kleur en helderheid"),
+                HorizontalAlignment = HorizontalAlignment.Right,
+                VerticalAlignment = VerticalAlignment.Top,
+                Margin = new Thickness(0, -4, -6, 0),
+                Style = (Style)FindResource("SmallIconButton"),
+            };
+            palette.Click += (_, _) => OpenPicker(device, tile);
+            content.Children.Add(palette);
+        }
         content.Children.Add(name);
         content.Children.Add(state);
         tile.Child = content;
 
         tile.MouseLeftButtonUp += async (_, _) => await ActAsync(device);
-        if (device.Kind == DeviceKind.Light)
+        if (device.Kind == DeviceKind.Light || (device.Kind == DeviceKind.Group && device.Brightness != null))
         {
             tile.MouseWheel += (_, e) =>
             {
@@ -187,9 +205,46 @@ public sealed class SmartHomeWidget : WidgetBase
         await AfterActionAsync(error);
     }
 
+    /// <summary>Een brandende lamp kleurt de tegel in zijn eigen kleur; anders de accentkleur van het thema.</summary>
+    private static Brush TileBrush(SmartDevice device, Color accent)
+    {
+        var lamp = LightPicker.LampColor(device.Color);
+        var color = lamp ?? accent;
+        return new SolidColorBrush(Color.FromArgb(lamp != null ? (byte)0x59 : (byte)0x4D, color.R, color.G, color.B));
+    }
+
+    /// <summary>De kiezer voor kleur, wit en helderheid openen, onder de tegel.</summary>
+    private void OpenPicker(SmartDevice device, FrameworkElement anchor)
+    {
+        if (_popup != null) _popup.IsOpen = false;
+        var picker = new LightPicker(device, async (action, value, value2) =>
+        {
+            var current = _devices.FirstOrDefault(d => d.Key == device.Key) ?? device;
+            return await SmartHomeService.InvokeAsync(current, action, value, null, value2);
+        });
+        var popup = new Popup
+        {
+            Child = picker,
+            PlacementTarget = anchor,
+            Placement = PlacementMode.Bottom,
+            VerticalOffset = 6,
+            StaysOpen = false,
+            AllowsTransparency = true,
+            PopupAnimation = PopupAnimation.Fade,
+        };
+        popup.Closed += async (_, _) =>
+        {
+            if (_popup == popup) _popup = null;
+            await LoadAsync();   // de nieuwe stand ophalen en de tegels bijwerken
+            Render();
+        };
+        _popup = popup;
+        popup.IsOpen = true;
+    }
+
     private static bool IsControllable(SmartDevice d) =>
         d.Kind is DeviceKind.Light or DeviceKind.Switch or DeviceKind.Scene or DeviceKind.Script or DeviceKind.Button
-            or DeviceKind.Lock or DeviceKind.Alarm or DeviceKind.Cover;
+            or DeviceKind.Lock or DeviceKind.Alarm or DeviceKind.Cover or DeviceKind.Group;
 
     private async Task ActAsync(SmartDevice device)
     {
@@ -250,6 +305,7 @@ public sealed class SmartHomeWidget : WidgetBase
         DeviceKind.Alarm => "\uEA18",
         DeviceKind.Cover => "\uE80F",
         DeviceKind.Climate or DeviceKind.Sensor => "\uE9D9",
+        DeviceKind.Group => "\uE902",
         _ => "\uEA8F",
     };
 
@@ -326,6 +382,7 @@ public sealed class SmartHomeWidget : WidgetBase
         DeviceKind.Alarm => Loc.T("Alarm"),
         DeviceKind.Cover => Loc.T("Rolluik of deur"),
         DeviceKind.Climate => Loc.T("Thermostaat"),
+        DeviceKind.Group => Loc.T("Groep"),
         _ => "",
     };
 }

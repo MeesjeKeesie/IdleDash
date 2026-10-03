@@ -17,11 +17,15 @@ Een dashboard voor je extra scherm. Het verschijnt vanzelf zodra daar geen venst
 - Nieuws en RSS: NOS, BBC, of elke website met een feed (ook YouTube-kanalen en Reddit)
 - Foto's als diavoorstelling uit een map op je pc
 - Een aftelklok, bijvoorbeeld tot je vakantie of een verjaardag
-- Smarthome: Home Assistant, Philips Hue en Shelly bedienen, en een melding als de deurbel gaat
+- Smarthome: Home Assistant, Philips Hue en Shelly bedienen, ook in groepen, met kleur, wittint en helderheid
+- Een melding als de deurbel gaat (via ntfy): je muziek pauzeert en er klinkt een geluid
+- Aandelen, indexen en crypto, met een grafiekje van de dag
+- Snelkoppelingen naar je apps en websites
 - Wat er speelt in Spotify of je browser, met vorige, pauze en volgende
 - PC-stats (processor, videokaart, geheugen) en een focustimer
 - Thema's: kant-en-klaar of zelf gemaakt, met je eigen foto als achtergrond, ook per widget
 - Een nachtmodus die het scherm 's avonds dimt
+- Back-ups van al je instellingen, ook elke dag automatisch
 - Nederlands en Engels
 
 Je kiest zelf welke onderdelen je ziet, waar ze staan en hoe groot ze zijn.
@@ -60,11 +64,21 @@ IdleDash leest je agenda's en taken. Afspraken toevoegen, taken afvinken of toev
 - **Philips Hue:** klik op Zoeken, druk op de ronde knop van je Hue-bridge en klik binnen 30 seconden op Koppelen.
 - **Shelly:** vul het IP-adres van je Shelly in (staat in de Shelly-app).
 
-Voeg daarna de widget Smarthome toe en kies met het tandwieltje welke apparaten je wilt zien. Sloten, alarm en garagedeuren vragen altijd om een bevestiging, want iedereen bij je scherm kan klikken. Alles gaat rechtstreeks binnen je eigen netwerk.
+Voeg daarna de widget Smarthome toe en kies met het tandwieltje welke apparaten je wilt zien. Een klik op een tegel zet hem aan of uit; met het kleurknopje op een lamp kies je kleur, wittint en helderheid. Bij Instellingen > Smarthome maak je groepen van lampen en schakelaars, ook van verschillende merken. Sloten, alarm en garagedeuren vragen altijd om een bevestiging, want iedereen bij je scherm kan klikken. Alles gaat rechtstreeks binnen je eigen netwerk.
 
 ## Foto's
 
 Kies met het tandwieltje van de widget een map, bijvoorbeeld een map die met OneDrive of Google Drive synchroniseert. Voor iPhone-foto's (HEIC) heeft Windows twee gratis uitbreidingen uit de Microsoft Store nodig; de widget geeft je de knoppen als het nodig is.
+
+## Deurbel
+
+IdleDash kan meeluisteren met [ntfy](https://ntfy.sh), een gratis dienst voor meldingen. Laat je deurbel (bijvoorbeeld een ESP32) een bericht sturen naar een onderwerp op ntfy; je telefoon met de ntfy-app en IdleDash krijgen het dan tegelijk. Stel het in bij Instellingen > Deurbel: vul hetzelfde onderwerp in en kies of je muziek moet pauzeren en welk geluid er klinkt (de ingebouwde dingdong of je eigen geluid). Kies een lange, moeilijk te raden naam voor het onderwerp, want op ntfy.sh kan iedereen meelezen die de naam kent.
+
+Je deurbel stuurt een gewoon webverzoek: een POST naar `https://ntfy.sh/jouw-onderwerp`, met als tekst bijvoorbeeld "Er wordt aangebeld".
+
+## Back-up
+
+Bij Instellingen > Back-up bewaar je al je instellingen in één bestand (indeling, widgets, thema's en koppelingen) en zet je ze later terug. IdleDash maakt daarnaast elke dag automatisch een back-up en bewaart de laatste 10. Wachtwoorden en tokens werken alleen op dezelfde pc met hetzelfde Windows-account; op een andere pc koppel je die opnieuw.
 
 ## Updates
 
@@ -88,7 +102,7 @@ Open `IdleDash.csproj` in Visual Studio 2022 en druk op F5. Alles over ontwikkel
 
 ## Bronnen
 
-Weer, plaatsen en regen buiten Nederland: [Open-Meteo](https://open-meteo.com). Regen in Nederland en België: [Buienradar](https://www.buienradar.nl). Nieuws: de feeds die je zelf kiest, zoals [NOS](https://nos.nl) en [BBC](https://www.bbc.co.uk/news). IdleDash is niet verbonden aan Google, Apple, Buienradar, de NOS, de BBC, Signify (Philips Hue), Shelly of Home Assistant.
+Weer, plaatsen en regen buiten Nederland: [Open-Meteo](https://open-meteo.com). Regen in Nederland en België: [Buienradar](https://www.buienradar.nl). Nieuws: de feeds die je zelf kiest, zoals [NOS](https://nos.nl) en [BBC](https://www.bbc.co.uk/news). Koersen: [Yahoo Finance](https://finance.yahoo.com), alleen voor persoonlijk gebruik. Deurbel: [ntfy](https://ntfy.sh). IdleDash is niet verbonden aan Google, Apple, Buienradar, de NOS, de BBC, Yahoo, ntfy, Signify (Philips Hue), Shelly of Home Assistant.
 
 ## Licentie
 
@@ -100,7 +114,7 @@ MIT, zie [LICENSE](LICENSE).
 
 IdleDash is a dashboard for your extra screen. It appears by itself as soon as no windows are left on that screen, and disappears again when you drag something onto it. It never takes over your keyboard.
 
-**What's on it:** clock, weather and rain radar, your events from Google Calendar, Apple iCloud and calendar links (and adding events), Google Tasks, news and RSS (BBC, NOS or any site with a feed), a photo slideshow, countdowns, smart home control for Home Assistant, Philips Hue and Shelly (with doorbell notifications), what's playing in Spotify or your browser, PC stats, a focus timer, themes (including your own photo as a background, also per widget) and a night mode. The app is available in English and Dutch.
+**What's on it:** clock, weather and rain radar, your events from Google Calendar, Apple iCloud and calendar links (and adding events), Google Tasks, news and RSS (BBC, NOS or any site with a feed), a photo slideshow, countdowns, smart home control for Home Assistant, Philips Hue and Shelly (with groups, colors and white tones), doorbell notifications via ntfy (pausing your music and playing a sound), stocks and crypto, shortcuts to your apps and websites, backups, what's playing in Spotify or your browser, PC stats, a focus timer, themes (including your own photo as a background, also per widget) and a night mode. The app is available in English and Dutch.
 
 **Install:** download **IdleDash-Setup-….exe** from [Releases](https://github.com/MeesjeKeesie/IdleDash/releases/latest). If Windows says "Windows protected your PC", click **More info** and **Run anyway**. Then click the IdleDash icon next to the clock, open the settings and choose **English** under Language and display (by default IdleDash follows your Windows language).
 

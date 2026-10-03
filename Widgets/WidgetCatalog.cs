@@ -27,6 +27,8 @@ public static class WidgetCatalog
         new("countdown", "Aftelklok",           "\uE916", 384, 216, _ => new CountdownWidget()),
         new("photos",    "Foto's",              "\uE91B", 480, 360, _ => new PhotoWidget()),
         new("smarthome", "Smarthome",           "\uE80F", 480, 312, _ => new SmartHomeWidget()),
+        new("stocks",    "Aandelen",            "\uE9D2", 432, 312, _ => new StocksWidget()),
+        new("shortcuts", "Snelkoppelingen",     "\uE71B", 432, 240, _ => new ShortcutsWidget()),
     };
 
     public static WidgetDefinition? Find(string type) =>

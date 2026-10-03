@@ -57,6 +57,12 @@ public class AppSettings
 
     public SmartHomeSettings SmartHome { get; set; } = new();
 
+    /// <summary>Deurbel via ntfy: melding, muziek pauzeren en een geluid.</summary>
+    public DoorbellSettings Doorbell { get; set; } = new();
+
+    /// <summary>Elke dag automatisch een back-up van de instellingen maken (de laatste 10 blijven bewaard).</summary>
+    public bool AutoBackup { get; set; } = true;
+
     // ── Oude instellingen (uit 1.0/1.1): nu per widget, alleen nog als beginwaarde ──
 
     public string NewsFeed { get; set; } = "nosnieuwsalgemeen";
@@ -190,4 +196,25 @@ public class SmartHomeSettings
 
     /// <summary>Sloten, alarm en garagedeuren mogen bediend worden (altijd met bevestiging).</summary>
     public bool AllowSensitive { get; set; } = true;
+
+    /// <summary>Eigen groepen: meerdere lampen en schakelaars (ook van verschillende merken) als één tegel.</summary>
+    public List<SmartGroupSettings> Groups { get; set; } = new();
+}
+
+public class SmartGroupSettings
+{
+    public string Id { get; set; } = Guid.NewGuid().ToString("N")[..8];
+    public string Name { get; set; } = "";
+    public List<string> Devices { get; set; } = new();
+}
+
+public class DoorbellSettings
+{
+    public bool Enabled { get; set; }
+    public string Server { get; set; } = "https://ntfy.sh";
+    public string? Topic { get; set; }
+    public string? Token { get; set; }              // versleuteld
+    public bool PauseMusic { get; set; } = true;
+    public string Sound { get; set; } = "builtin";  // builtin, custom, none
+    public string? SoundFile { get; set; }
 }

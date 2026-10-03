@@ -88,7 +88,15 @@
             <Border Width="250" Padding="6" CornerRadius="12" Background="{DynamicResource PanelBrush}"
                     BorderBrush="{DynamicResource PanelBorderBrush}" BorderThickness="1"
                     TextElement.FontFamily="{StaticResource UiFont}">
-                <StackPanel x:Name="AddList"/>
+                <StackPanel>
+                    <Grid Margin="6,4,6,8">
+                        <TextBox x:Name="AddSearchBox" Style="{StaticResource InlineTextBox}"
+                                 TextChanged="AddSearchBox_TextChanged" KeyDown="AddSearchBox_KeyDown"/>
+                        <TextBlock x:Name="AddSearchHint" Text="Zoek een widget…" IsHitTestVisible="False" VerticalAlignment="Center"
+                                   Margin="4,0,0,0" FontSize="14" Foreground="{DynamicResource TextMutedBrush}"/>
+                    </Grid>
+                    <StackPanel x:Name="AddList"/>
+                </StackPanel>
             </Border>
         </Popup>
     </Grid>
