@@ -57,6 +57,9 @@ public class AppSettings
 
     public SmartHomeSettings SmartHome { get; set; } = new();
 
+    /// <summary>Spotify-koppeling (eigen Spotify-app per gebruiker) voor de widget Playlists.</summary>
+    public SpotifySettings Spotify { get; set; } = new();
+
     /// <summary>Deurbel via ntfy: melding, muziek pauzeren en een geluid.</summary>
     public DoorbellSettings Doorbell { get; set; } = new();
 
@@ -206,6 +209,13 @@ public class SmartGroupSettings
     public string Id { get; set; } = Guid.NewGuid().ToString("N")[..8];
     public string Name { get; set; } = "";
     public List<string> Devices { get; set; } = new();
+}
+
+public class SpotifySettings
+{
+    public string? ClientId { get; set; }
+    public string? RefreshToken { get; set; }   // versleuteld
+    public string? AccountName { get; set; }
 }
 
 public class DoorbellSettings

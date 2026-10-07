@@ -85,7 +85,7 @@ public partial class SettingsWindow
         ThemePanel.Children.Add(Ui.Combo(new[]
         {
             (Loc.T("Lucht die meekleurt met de tijd"), "sky"), (Loc.T("Effen kleur"), "solid"),
-            (Loc.T("Kleurverloop"), "gradient"), (Loc.T("Eigen foto"), "photo"),
+            (Loc.T("Kleurverloop"), "gradient"), (Loc.T("Eigen foto"), "photo"), (Loc.T("Fotomap (wisselend)"), "folder"),
         }, theme.Background, v => { theme.Background = v; Edited(); BuildThemeSection(); }));
 
         if (theme.Background is "solid" or "gradient")
@@ -114,6 +114,46 @@ public partial class SettingsWindow
                 photoName.Text = Path.GetFileName(dialog.FileName);
                 Edited();
             })));
+        }
+        if (theme.Background == "folder")
+        {
+            var folderName = Ui.Hint(theme.PhotoFolder ?? Loc.T("Nog geen map gekozen."));
+            ThemePanel.Children.Add(folderName);
+            ThemePanel.Children.Add(Ui.Row(Ui.Button(Loc.T("Map kiezen…"), () =>
+            {
+                var dialog = new Microsoft.Win32.OpenFolderDialog { Title = Loc.T("Kies een map met foto's") };
+                if (dialog.ShowDialog(this) != true) return;
+                theme.PhotoFolder = dialog.FolderName;
+                folderName.Text = dialog.FolderName;
+                Edited();
+            })));
+            ThemePanel.Children.Add(Ui.Switch(Loc.T("Ook submappen"), null, theme.PhotoSubfolders, v => { theme.PhotoSubfolders = v; Edited(); }));
+            ThemePanel.Children.Add(Ui.Columns(
+                (Loc.T("Wisselen elke"), Ui.Combo(new[]
+                {
+                    (Loc.T("1 minuut"), 60), (Loc.T("5 minuten"), 300), (Loc.T("15 minuten"), 900), (Loc.T("30 minuten"), 1800), (Loc.T("1 uur"), 3600),
+                }, theme.PhotoInterval, v => { theme.PhotoInterval = v; Edited(); }), "*"),
+                (Loc.T("Volgorde"), Ui.Combo(new[]
+                {
+                    (Loc.T("Willekeurig"), "random"), (Loc.T("Op naam"), "name"), (Loc.T("Op datum"), "date"),
+                }, theme.PhotoOrder, v => { theme.PhotoOrder = v; Edited(); }), "*")));
+        }
+        if (theme.Background is "photo" or "folder")
+        {
+            ThemePanel.Children.Add(Ui.Label(Loc.T("Passend maken")));
+            ThemePanel.Children.Add(Ui.Combo(new[]
+            {
+                (Loc.T("Opvullen (scherm helemaal vol)"), "fill"), (Loc.T("Aanpassen (hele foto zichtbaar)"), "fit"),
+                (Loc.T("Uitrekken"), "stretch"), (Loc.T("Centreren (ware grootte)"), "center"),
+            }, theme.PhotoFit, v => { theme.PhotoFit = v; Edited(); BuildThemeSection(); }));
+            if (theme.PhotoFit == "fill")
+            {
+                ThemePanel.Children.Add(Ui.Label(Loc.T("Welk deel zichtbaar blijft")));
+                ThemePanel.Children.Add(Ui.Combo(new[]
+                {
+                    (Loc.T("Midden"), "center"), (Loc.T("Boven"), "top"), (Loc.T("Onder"), "bottom"), (Loc.T("Links"), "left"), (Loc.T("Rechts"), "right"),
+                }, theme.PhotoAlign, v => { theme.PhotoAlign = v; Edited(); }));
+            }
             ThemePanel.Children.Add(Ui.Label(Loc.T("Foto donkerder maken (voor leesbare tekst)")));
             ThemePanel.Children.Add(Ui.Combo(new[] { (Loc.T("Niet"), 0), ("20%", 20), ("40%", 40), ("60%", 60) },
                 theme.PhotoDim, v => { theme.PhotoDim = v; Edited(); }));
@@ -156,7 +196,8 @@ public partial class SettingsWindow
                 };
                 if (dialog.ShowDialog(this) != true) return;
                 var export = theme.Clone();
-                export.Photo = null;   // een foto-pad van jouw pc werkt niet bij iemand anders
+                export.Photo = null;   // paden van jouw pc werken niet bij iemand anders
+                export.PhotoFolder = null;
                 File.WriteAllText(dialog.FileName, AppSettings.ToJson(export));
                 status.Text = Loc.T("Opgeslagen. Stuur het bestand naar iemand die het kan importeren.");
             }),
@@ -723,5 +764,62 @@ public partial class SettingsWindow
         {
             status.Text = Loc.T("Terugzetten lukte niet: {0}", ex.Message);
         }
+    }
+
+    // ─────────────────────────── Spotify ───────────────────────────
+
+    private void BuildSpotifySection()
+    {
+        SpotifyPanel.Children.Clear();
+        var spotify = _settings.Spotify;
+        var status = Ui.Hint("");
+        SpotifyPanel.Children.Add(Ui.Hint(Loc.T("Start je playlists met een knop op het dashboard (widget Playlists). Dit werkt met Spotify Premium. Spotify vraagt dat je daarvoor eenmalig een eigen Spotify-app aanmaakt; dat duurt een paar minuten.")));
+
+        if (SpotifyService.IsConnected)
+        {
+            SpotifyPanel.Children.Add(new TextBlock
+            {
+                Text = spotify.AccountName != null ? Loc.T("Gekoppeld met {0}", spotify.AccountName) : Loc.T("Gekoppeld"),
+                Margin = new Thickness(0, 8, 0, 0),
+            });
+            SpotifyPanel.Children.Add(Ui.Row(Ui.Button(Loc.T("Ontkoppelen"), SpotifyService.Disconnect)));
+            return;
+        }
+
+        SpotifyPanel.Children.Add(Ui.Hint(Loc.T("1. Open het Spotify-dashboard en log in. 2. Klik op Create app en vul een naam in, bijvoorbeeld IdleDash. 3. Vul bij Redirect URIs precies het adres hieronder in en klik op Add. 4. Vink Web API aan, ga akkoord en klik op Save. 5. Kopieer de Client ID en plak hem hieronder."), 10));
+        SpotifyPanel.Children.Add(Ui.Label(Loc.T("Redirect URI")));
+        SpotifyPanel.Children.Add(new TextBox { Text = SpotifyApi.RedirectUri, IsReadOnly = true });
+        SpotifyPanel.Children.Add(Ui.Row(
+            Ui.Button(Loc.T("Spotify-dashboard openen"), () => Browser.Open("https://developer.spotify.com/dashboard")),
+            Ui.Button(Loc.T("Adres kopiëren"), () =>
+            {
+                try
+                {
+                    Clipboard.SetText(SpotifyApi.RedirectUri);
+                    status.Text = Loc.T("Gekopieerd.");
+                }
+                catch
+                {
+                    // klembord even bezet: dan zelf overtypen
+                }
+            })));
+
+        SpotifyPanel.Children.Add(Ui.Label(Loc.T("Client ID")));
+        var clientId = new TextBox { Text = spotify.ClientId ?? "" };
+        SpotifyPanel.Children.Add(clientId);
+        SpotifyPanel.Children.Add(Ui.Row(Ui.Button(Loc.T("Koppelen met Spotify"), async () =>
+        {
+            spotify.ClientId = clientId.Text.Trim();
+            _settings.Save();
+            SpotifyService.Configure(_settings);
+            if (spotify.ClientId.Length < 16)
+            {
+                status.Text = Loc.T("Plak eerst de Client ID van je Spotify-app.");
+                return;
+            }
+            status.Text = Loc.T("Er is een browservenster geopend. Log daar in bij Spotify en geef toestemming.");
+            status.Text = await SpotifyService.ConnectAsync() ?? "";
+        }, accent: true)));
+        SpotifyPanel.Children.Add(status);
     }
 }

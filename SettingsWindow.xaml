@@ -157,6 +157,10 @@
             <TextBlock Style="{StaticResource Hint}" Margin="0,6,0,0"
                        Text="Namen zonder .exe, gescheiden door komma's. Vensters van deze programma's houden het dashboard niet tegen."/>
 
+            <!-- ═══ Spotify (in code gebouwd) ═══ -->
+            <TextBlock Style="{StaticResource SectionTitle}" Text="Spotify"/>
+            <StackPanel x:Name="SpotifyPanel"/>
+
             <!-- ═══ Back-up (in code gebouwd) ═══ -->
             <TextBlock Style="{StaticResource SectionTitle}" Text="Back-up"/>
             <StackPanel x:Name="BackupPanel"/>

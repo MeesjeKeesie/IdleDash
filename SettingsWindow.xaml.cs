@@ -33,6 +33,7 @@ public partial class SettingsWindow : Window
             // zonder icoon werkt het ook
         }
 
+        Ui.KeepOnScreen(this);   // titelbalk altijd in beeld, ook op een klein scherm
         Loc.Apply(this);
         LoadValues();
         BuildLanguageSection();
@@ -42,6 +43,9 @@ public partial class SettingsWindow : Window
         BuildSmartHomeSection();
         BuildDoorbellSection();
         BuildBackupSection();
+        BuildSpotifySection();
+        SpotifyService.StateChanged += BuildSpotifySection;
+        Closed += (_, _) => SpotifyService.StateChanged -= BuildSpotifySection;
         NtfyService.StatusChanged += UpdateDoorbellStatus;
         Closed += (_, _) => NtfyService.StatusChanged -= UpdateDoorbellStatus;
 

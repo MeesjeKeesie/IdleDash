@@ -106,7 +106,7 @@ public sealed class PhotoWidget : WidgetBase
             {
                 _index = (_index + 1) % _files.Count;
                 string path = _files[_index];
-                var image = await Task.Run(() => Load(path, maxSize));
+                var image = await Task.Run(() => PhotoLoader.Load(path, maxSize));
                 if (image != null)
                 {
                     Show(image);
@@ -120,53 +120,6 @@ public sealed class PhotoWidget : WidgetBase
         finally
         {
             _busy = false;
-        }
-    }
-
-    /// <summary>Foto inladen op de achtergrond, verkleind en rechtop gedraaid (iPhone-foto's staan vaak "gedraaid" opgeslagen).</summary>
-    private static BitmapSource? Load(string path, int maxSize)
-    {
-        try
-        {
-            ushort orientation = 1;
-            int width = 0, height = 0;
-            using (var stream = File.OpenRead(path))
-            {
-                var frame = BitmapFrame.Create(stream, BitmapCreateOptions.DelayCreation, BitmapCacheOption.None);
-                width = frame.PixelWidth;
-                height = frame.PixelHeight;
-                try
-                {
-                    if (frame.Metadata is BitmapMetadata meta && meta.ContainsQuery("System.Photo.Orientation")
-                        && meta.GetQuery("System.Photo.Orientation") is ushort o)
-                        orientation = o;
-                }
-                catch
-                {
-                    // geen draai-informatie
-                }
-            }
-
-            using var file = File.OpenRead(path);   // via een stream: werkt ook met # of % in de bestandsnaam
-            var image = new BitmapImage();
-            image.BeginInit();
-            image.StreamSource = file;
-            image.CacheOption = BitmapCacheOption.OnLoad;
-            image.CreateOptions = BitmapCreateOptions.IgnoreColorProfile;
-            if (width > maxSize && width >= height) image.DecodePixelWidth = maxSize;
-            else if (height > maxSize) image.DecodePixelHeight = maxSize;
-            image.EndInit();
-            image.Freeze();
-
-            double angle = orientation switch { 3 or 4 => 180, 5 or 6 => 90, 7 or 8 => 270, _ => 0 };
-            if (angle == 0) return image;
-            var rotated = new TransformedBitmap(image, new RotateTransform(angle));
-            rotated.Freeze();
-            return rotated;
-        }
-        catch
-        {
-            return null;
         }
     }
 

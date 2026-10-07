@@ -49,6 +49,7 @@ public partial class TasksWidget : WidgetBase
     {
         // Andere takenlijst gekozen in de instellingen
         if (IsRunning && ListSetting != _loadedListSetting) await RefreshAsync();
+        else Refresh();
     }
 
     private async void OnGoogleStateChanged() => await RefreshAsync();
@@ -100,6 +101,7 @@ public partial class TasksWidget : WidgetBase
 
     private void Render(List<TaskItem> items)
     {
+        if (Config.Get("order", "due") == "due") items = TaskOrder.ByDue(items, t => t.Due, t => t.IsSubtask);
         MessagePanel.Visibility = Visibility.Collapsed;
         NewTaskRow.Visibility = Visibility.Visible;
         TaskList.Children.Clear();
@@ -243,6 +245,11 @@ public partial class TasksWidget : WidgetBase
         var holder = new StackPanel();
         holder.Children.Add(Ui.Hint(GoogleService.IsConnected ? Loc.T("Lijsten ophalen…") : Loc.T("Koppel eerst Google in de instellingen van IdleDash.")));
         panel.Children.Add(holder);
+        panel.Children.Add(Ui.Label(Loc.T("Volgorde")));
+        panel.Children.Add(Ui.Combo(new[]
+        {
+            (Loc.T("Wat het eerst af moet bovenaan"), "due"), (Loc.T("Zoals in Google Taken"), "google"),
+        }, Config.Get("order", "due"), v => { Config.Set("order", v); saved(); }));
         panel.Loaded += async (_, _) =>
         {
             if (!GoogleService.IsConnected) return;

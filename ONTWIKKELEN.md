@@ -15,7 +15,7 @@ Open `IdleDash.csproj` en druk op F5. De eerste keer haalt Visual Studio de onde
 | Map of bestand | Wat |
 |---|---|
 | `Core/` | Koppeling met Windows, instellingen, systeemvak, nachtmodus, autostart, taal (`Loc.cs`, `Strings.cs`), thema's (`Theme.cs`, `ThemeManager.cs`), versleuteling (`Secrets.cs`) en bouwstenen voor instellingenschermen (`Ui.cs`) |
-| `Services/` | Weer en regen (Buienradar, Open-Meteo), RSS-feeds, Google, Apple iCloud (`CalDav.cs`), agenda-links (`IcsParser.cs`), alle agenda's samen (`CalendarHub.cs`), smarthome en groepen, foto's, aandelen (`StockService.cs`), deurbel (`NtfyService.cs`, `DoorbellSound.cs`), back-ups (`BackupService.cs`), updates |
+| `Services/` | Weer en regen (Buienradar, Open-Meteo), RSS-feeds, Google, Apple iCloud (`CalDav.cs`), agenda-links (`IcsParser.cs`), alle agenda's samen (`CalendarHub.cs`), smarthome en groepen, foto's, aandelen (`StockService.cs`), deurbel (`NtfyService.cs`, `DoorbellSound.cs`), back-ups (`BackupService.cs`), Spotify (`SpotifyApi.cs`, `SpotifyService.cs`), updates |
 | `Widgets/` | Alle widgets. Een nieuwe widget toevoegen = één regel in `WidgetCatalog.cs`. Instellingen per widget staan in `CreateSettings` van die widget |
 | `Styles/` | Kleuren en stijlen. `Theme.xaml` is voor het dashboard (kleuren wisselen mee met het thema), `Controls.xaml` voor de instellingenvensters |
 | `CHANGELOG.md` | Wat er in elke versie nieuw is (de patch notes) |
@@ -113,5 +113,6 @@ Pas nodig als je meer dan 100 gebruikers verwacht of de waarschuwing weg wilt he
 - **Afspraak toevoegen in Google lukt niet**: klik bij de instellingen op *Opnieuw koppelen*, zodat Google toestemming geeft voor `calendar.events`. Controleer ook stap 7 bij "Google Cloud-project".
 - **De deurbel doet niets**: kijk bij Instellingen > Deurbel wat er onder de testknoppen staat. "Test op deze pc" controleert melding, muziek en geluid; "Testbericht via ntfy" controleert de hele weg via de server.
 - **Aandelen tonen een streepje**: Yahoo Finance is even niet bereikbaar of vraagt IdleDash om rustiger aan te doen. IdleDash probeert het na een kwartier vanzelf opnieuw.
+- **Spotify koppelen lukt niet**: controleer dat bij Redirect URIs in het Spotify-dashboard precies `http://127.0.0.1:45631/callback` staat (niet `localhost`; het dashboard verandert dat soms vanzelf). De eigenaar van de Spotify-app moet Premium hebben. Een Spotify-app mag sinds 2026 hooguit vijf gebruikers hebben: wil iemand anders jouw Client ID gebruiken, zet die persoon dan bij *User Management*. Makkelijker is dat iedereen een eigen app aanmaakt.
 - **Een tekst blijft Nederlands in de Engelse versie**: die vertaling ontbreekt in `Core/Strings.cs` (zie "Vertalen").
 - **iCloud of smarthome werkt niet meer na een nieuwe pc of Windows-account**: de versleutelde wachtwoorden en tokens horen bij het oude account. Koppel ze opnieuw in de instellingen.

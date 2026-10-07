@@ -28,6 +28,14 @@ public partial class MainWindow : Window
 
     private MonitorInfo? _target;
     private readonly Brush _skyBrush;
+    private readonly PhotoLayer _backgroundA = new(70), _backgroundB = new(70);
+    private PhotoLayer _backgroundFront;
+    private readonly DispatcherTimer _slideTimer = new();
+    private List<string> _slides = new();
+    private int _slideIndex = -1;
+    private DateTime _slidesScanned;
+    private bool _slideBusy;
+    private int _backgroundVersion;
     private string _backgroundKey = "";
     private bool _editMode;
     private bool _toolbarVisible;
@@ -46,6 +54,10 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
         _skyBrush = Background;
+        BackgroundLayer.Children.Add(_backgroundA);
+        BackgroundLayer.Children.Add(_backgroundB);
+        _backgroundFront = _backgroundA;
+        _slideTimer.Tick += async (_, _) => await NextSlideAsync();
         Loc.Apply(this);
         _settings = settings;
         _settings.Changed += OnSettingsChanged;
@@ -204,57 +216,137 @@ public partial class MainWindow : Window
 
     // ─────────────────────────── Achtergrond ───────────────────────────
 
-    /// <summary>Achtergrond volgens het thema: lucht, effen kleur, kleurverloop of eigen foto.</summary>
+    /// <summary>Achtergrond volgens het thema: lucht, effen kleur, kleurverloop, eigen foto of een wisselende fotomap.</summary>
     private void ApplyBackground()
     {
         var theme = _settings.Theme;
-        string key = $"{theme.Background}|{theme.Color1}|{theme.Color2}|{theme.Photo}|{theme.PhotoDim}";
+        string key = string.Join("|", theme.Background, theme.Color1, theme.Color2, theme.Photo, theme.PhotoDim, theme.PhotoFit,
+            theme.PhotoAlign, theme.PhotoFolder, theme.PhotoSubfolders, theme.PhotoInterval, theme.PhotoOrder);
         if (key == _backgroundKey) return;
         _backgroundKey = key;
+        _backgroundVersion++;
+        _slideTimer.Stop();
 
-        Glow.Visibility = theme.Background == "sky" ? Visibility.Visible : Visibility.Collapsed;
-        BackgroundImage.Visibility = Visibility.Collapsed;
-        BackgroundImage.Source = null;
-        BackgroundTint.Opacity = 0;
-
+        Glow.Visibility = Visibility.Collapsed;
+        BackgroundTint.Opacity = Math.Clamp(theme.PhotoDim, 0, 90) / 100.0;
         var color1 = ThemeManager.ToColor(theme.Color1, Color.FromRgb(0x15, 0x23, 0x3A));
         var color2 = ThemeManager.ToColor(theme.Color2, color1);
         switch (theme.Background)
         {
             case "solid":
+                ClearPhotos();
                 Background = new SolidColorBrush(color1);
                 break;
             case "gradient":
+                ClearPhotos();
                 Background = new LinearGradientBrush(color1, color2, 90);
                 break;
-            case "photo" when theme.Photo != null && System.IO.File.Exists(theme.Photo):
-                try
-                {
-                    using var file = System.IO.File.OpenRead(theme.Photo);   // ook met # of % in de naam
-                    var image = new BitmapImage();
-                    image.BeginInit();
-                    image.StreamSource = file;
-                    image.CacheOption = BitmapCacheOption.OnLoad;
-                    image.DecodePixelWidth = 2560;
-                    image.EndInit();
-                    image.Freeze();
-                    BackgroundImage.Source = image;
-                    BackgroundImage.Visibility = Visibility.Visible;
-                    BackgroundTint.Opacity = Math.Clamp(theme.PhotoDim, 0, 90) / 100.0;
-                    Background = Brushes.Black;
-                }
-                catch
-                {
-                    Background = _skyBrush;
-                    Glow.Visibility = Visibility.Visible;
-                }
+            case "photo" when System.IO.File.Exists(theme.Photo):
+                Background = Brushes.Black;
+                ShowSinglePhoto(theme.Photo!, _backgroundVersion);
+                break;
+            case "folder" when System.IO.Directory.Exists(theme.PhotoFolder):
+                Background = Brushes.Black;
+                _slides.Clear();
+                _ = NextSlideAsync();
+                _slideTimer.Interval = TimeSpan.FromSeconds(Math.Max(10, theme.PhotoInterval));
+                _slideTimer.Start();
                 break;
             default:
-                Background = _skyBrush;
-                Glow.Visibility = Visibility.Visible;
-                UpdateSky();
+                FallBackToSky();
                 break;
         }
+    }
+
+    private void ClearPhotos()
+    {
+        BackgroundLayer.Visibility = Visibility.Collapsed;
+        BackgroundTint.Opacity = 0;
+        _backgroundA.Clear();
+        _backgroundB.Clear();
+    }
+
+    private void FallBackToSky()
+    {
+        ClearPhotos();
+        Background = _skyBrush;
+        Glow.Visibility = Visibility.Visible;
+        UpdateSky();
+    }
+
+    private async void ShowSinglePhoto(string path, int version)
+    {
+        if (!await ShowBackgroundPhotoAsync(path, version, fade: false) && version == _backgroundVersion) FallBackToSky();
+    }
+
+    /// <summary>Volgende foto uit de map. Wisselt niet als het dashboard verborgen is (dan kijkt toch niemand).</summary>
+    private async Task NextSlideAsync()
+    {
+        var theme = _settings.Theme;
+        if (_slideBusy || theme.Background != "folder" || theme.PhotoFolder == null) return;
+        if (!IsVisible && _backgroundFront.HasImage) return;
+        _slideBusy = true;
+        int version = _backgroundVersion;
+        try
+        {
+            if (_slides.Count == 0 || DateTime.Now - _slidesScanned > TimeSpan.FromMinutes(30))
+            {
+                _slides = await Task.Run(() => PhotoLibrary.Scan(new[] { theme.PhotoFolder }, theme.PhotoSubfolders, theme.PhotoOrder));
+                _slidesScanned = DateTime.Now;
+                _slideIndex = -1;
+                if (version != _backgroundVersion) return;
+            }
+            for (int tries = 0; tries < Math.Min(10, _slides.Count); tries++)
+            {
+                _slideIndex = (_slideIndex + 1) % _slides.Count;
+                if (await ShowBackgroundPhotoAsync(_slides[_slideIndex], version, fade: _backgroundFront.HasImage)) return;
+            }
+            if (!_backgroundFront.HasImage && version == _backgroundVersion) FallBackToSky();   // geen enkele foto te openen
+        }
+        finally
+        {
+            _slideBusy = false;
+        }
+    }
+
+    /// <summary>Foto laden (zo groot als het scherm nodig heeft) en tonen, met een zachte overgang als fade aan staat.</summary>
+    private async Task<bool> ShowBackgroundPhotoAsync(string path, int version, bool fade)
+    {
+        var theme = _settings.Theme;
+        double width = _target?.Bounds.Width ?? 2560, height = _target?.Bounds.Height ?? 1440;
+        string fit = theme.PhotoFit, align = theme.PhotoAlign;
+        var image = await Task.Run(() => PhotoLoader.LoadForScreen(path, width, height, fit));
+        if (version != _backgroundVersion) return true;   // intussen een ander thema gekozen
+        if (image == null) return false;
+
+        var next = _backgroundFront == _backgroundA ? _backgroundB : _backgroundA;
+        var previous = _backgroundFront;
+        _backgroundFront = next;
+        next.Show(image, fit, align);
+        BackgroundLayer.Visibility = Visibility.Visible;
+        BackgroundTint.Opacity = Math.Clamp(theme.PhotoDim, 0, 90) / 100.0;
+        Panel.SetZIndex(next, 1);
+        Panel.SetZIndex(previous, 0);
+
+        if (!fade || !IsVisible)
+        {
+            next.BeginAnimation(OpacityProperty, null);
+            next.Opacity = 1;
+            previous.BeginAnimation(OpacityProperty, null);
+            previous.Opacity = 0;
+            previous.Clear();
+            return true;
+        }
+        var animation = new DoubleAnimation(0, 1, TimeSpan.FromSeconds(1.5));
+        animation.Completed += (_, _) =>
+        {
+            if (_backgroundFront != next) return;
+            previous.BeginAnimation(OpacityProperty, null);
+            previous.Opacity = 0;
+            previous.Clear();
+        };
+        next.BeginAnimation(OpacityProperty, animation);
+        return true;
     }
 
     /// <summary>Melding bovenin het dashboard (bv. "Voordeur: Beweging"). Verdwijnt na 12 seconden.</summary>
@@ -602,7 +694,7 @@ public partial class MainWindow : Window
 
     private void UpdateSky()
     {
-        if (_settings.Theme.Background != "sky") return;
+        if (Background != _skyBrush) return;
         var sky = SkyPalette.At(DateTime.Now);
         SkyTop.Color = sky.Top;
         SkyBottom.Color = sky.Bottom;

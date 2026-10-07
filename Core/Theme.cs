@@ -18,6 +18,18 @@ public class ThemeSettings
     /// <summary>Hoeveel procent donkerder de foto wordt, zodat tekst leesbaar blijft.</summary>
     public int PhotoDim { get; set; } = 40;
 
+    /// <summary>Hoe de foto op het scherm past: fill (opvullen), fit (hele foto), stretch (uitrekken), center (centreren).</summary>
+    public string PhotoFit { get; set; } = "fill";
+
+    /// <summary>Bij opvullen: welk deel zichtbaar blijft (center, top, bottom, left, right).</summary>
+    public string PhotoAlign { get; set; } = "center";
+
+    // Fotomap als wisselende achtergrond
+    public string? PhotoFolder { get; set; }
+    public bool PhotoSubfolders { get; set; } = true;
+    public int PhotoInterval { get; set; } = 300;           // seconden
+    public string PhotoOrder { get; set; } = "random";      // random, name, date
+
     /// <summary>Doorzichtigheid van het kaartje achter elke widget (0 = geen kaartje).</summary>
     public int CardOpacity { get; set; }
 

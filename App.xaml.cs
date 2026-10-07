@@ -38,6 +38,7 @@ public partial class App : Application
         ThemeManager.ApplyGlobal(Settings.Theme);
         CalendarHub.Configure(Settings);
         SmartHomeService.Configure(Settings);
+        SpotifyService.Configure(Settings);
         NtfyService.Received += OnDoorbell;
         ConfigureDoorbell();
         Loc.Changed += () => Dispatcher.BeginInvoke(ReopenSettings);

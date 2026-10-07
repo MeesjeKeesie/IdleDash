@@ -1,6 +1,7 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Runtime.InteropServices;
 using System.Windows.Interop;
 using System.Windows.Media;
 
@@ -37,6 +38,7 @@ public static class Ui
         window.UseLayoutRounding = true;
         window.Resources.MergedDictionaries.Add(new ResourceDictionary { Source = new Uri("pack://application:,,,/Styles/Controls.xaml") });
         window.SourceInitialized += (_, _) => DarkTitleBar(window);
+        KeepOnScreen(window);
         try
         {
             window.Icon = System.Windows.Media.Imaging.BitmapFrame.Create(new Uri("pack://application:,,,/Assets/IdleDash.ico"));
@@ -45,6 +47,29 @@ public static class Ui
         {
             // zonder icoon werkt het ook
         }
+    }
+
+    /// <summary>
+    /// Het venster past altijd op het scherm waar het opent, met de titelbalk (sluiten, groot maken) in beeld,
+    /// ook op een klein scherm of bij een hoge schaal (125%, 150%).
+    /// </summary>
+    public static void KeepOnScreen(Window window) => window.Loaded += (_, _) => FitToWorkArea(window);
+
+    public static void FitToWorkArea(Window window)
+    {
+        if (window.WindowState != WindowState.Normal) return;
+        var hwnd = new WindowInteropHelper(window).Handle;
+        if (hwnd == IntPtr.Zero || !NativeMethods.GetWindowRect(hwnd, out var rect)) return;
+        var info = new NativeMethods.MONITORINFOEX { cbSize = Marshal.SizeOf<NativeMethods.MONITORINFOEX>() };
+        if (!NativeMethods.GetMonitorInfo(NativeMethods.MonitorFromWindow(hwnd, 2 /* dichtstbijzijnde scherm */), ref info)) return;
+        var work = info.rcWork;
+        int margin = (int)Math.Round(12 * VisualTreeHelper.GetDpi(window).DpiScaleX);
+        int width = Math.Min(rect.Width, work.Width - 2 * margin);
+        int height = Math.Min(rect.Height, work.Height - 2 * margin);
+        int left = Math.Clamp(rect.Left, work.Left + margin, Math.Max(work.Left + margin, work.Right - margin - width));
+        int top = Math.Clamp(rect.Top, work.Top + margin, Math.Max(work.Top + margin, work.Bottom - margin - height));
+        if (left == rect.Left && top == rect.Top && width == rect.Width && height == rect.Height) return;
+        NativeMethods.SetWindowPos(hwnd, IntPtr.Zero, left, top, width, height, NativeMethods.SWP_NOZORDER | NativeMethods.SWP_NOACTIVATE);
     }
 
     public static void DarkTitleBar(Window window)

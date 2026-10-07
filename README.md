@@ -13,7 +13,7 @@ Een dashboard voor je extra scherm. Het verschijnt vanzelf zodra daar geen venst
 - Klok en datum (24- of 12-uurs)
 - Weer en regenradar: Buienradar in Nederland en België, daarbuiten Open-Meteo
 - Je afspraken uit Google Agenda, Apple iCloud en agenda-links (.ics), en afspraken toevoegen met de plusknop
-- Je taken uit Google Taken
+- Je taken uit Google Taken, met wat het eerst af moet bovenaan
 - Nieuws en RSS: NOS, BBC, of elke website met een feed (ook YouTube-kanalen en Reddit)
 - Foto's als diavoorstelling uit een map op je pc
 - Een aftelklok, bijvoorbeeld tot je vakantie of een verjaardag
@@ -22,8 +22,9 @@ Een dashboard voor je extra scherm. Het verschijnt vanzelf zodra daar geen venst
 - Aandelen, indexen en crypto, met een grafiekje van de dag
 - Snelkoppelingen naar je apps en websites
 - Wat er speelt in Spotify of je browser, met vorige, pauze en volgende
+- Je Spotify-playlists starten met één klik (Spotify Premium)
 - PC-stats (processor, videokaart, geheugen) en een focustimer
-- Thema's: kant-en-klaar of zelf gemaakt, met je eigen foto als achtergrond, ook per widget
+- Thema's: kant-en-klaar of zelf gemaakt, met je eigen foto of een wisselende fotomap als achtergrond, ook per widget
 - Een nachtmodus die het scherm 's avonds dimt
 - Back-ups van al je instellingen, ook elke dag automatisch
 - Nederlands en Engels
@@ -70,6 +71,18 @@ Voeg daarna de widget Smarthome toe en kies met het tandwieltje welke apparaten 
 
 Kies met het tandwieltje van de widget een map, bijvoorbeeld een map die met OneDrive of Google Drive synchroniseert. Voor iPhone-foto's (HEIC) heeft Windows twee gratis uitbreidingen uit de Microsoft Store nodig; de widget geeft je de knoppen als het nodig is.
 
+## Spotify
+
+Met de widget Playlists start je een playlist met één klik. Dit werkt alleen met Spotify Premium. Spotify vraagt sinds 2026 dat iedereen daarvoor eenmalig een eigen "Spotify-app" aanmaakt:
+
+1. Ga naar [developer.spotify.com/dashboard](https://developer.spotify.com/dashboard) en log in.
+2. Klik op **Create app** en vul een naam en korte beschrijving in, bijvoorbeeld IdleDash.
+3. Vul bij **Redirect URIs** precies `http://127.0.0.1:45631/callback` in en klik op **Add**.
+4. Vink **Web API** aan, ga akkoord met de voorwaarden en klik op **Save**.
+5. Kopieer de **Client ID**, plak hem in IdleDash bij Instellingen > Spotify en klik op **Koppelen met Spotify**.
+
+Voeg daarna de widget Playlists toe en kies met het tandwieltje welke playlists erop komen.
+
 ## Deurbel
 
 IdleDash kan meeluisteren met [ntfy](https://ntfy.sh), een gratis dienst voor meldingen. Laat je deurbel (bijvoorbeeld een ESP32) een bericht sturen naar een onderwerp op ntfy; je telefoon met de ntfy-app en IdleDash krijgen het dan tegelijk. Stel het in bij Instellingen > Deurbel: vul hetzelfde onderwerp in en kies of je muziek moet pauzeren en welk geluid er klinkt (de ingebouwde dingdong of je eigen geluid). Kies een lange, moeilijk te raden naam voor het onderwerp, want op ntfy.sh kan iedereen meelezen die de naam kent.
@@ -102,7 +115,7 @@ Open `IdleDash.csproj` in Visual Studio 2022 en druk op F5. Alles over ontwikkel
 
 ## Bronnen
 
-Weer, plaatsen en regen buiten Nederland: [Open-Meteo](https://open-meteo.com). Regen in Nederland en België: [Buienradar](https://www.buienradar.nl). Nieuws: de feeds die je zelf kiest, zoals [NOS](https://nos.nl) en [BBC](https://www.bbc.co.uk/news). Koersen: [Yahoo Finance](https://finance.yahoo.com), alleen voor persoonlijk gebruik. Deurbel: [ntfy](https://ntfy.sh). IdleDash is niet verbonden aan Google, Apple, Buienradar, de NOS, de BBC, Yahoo, ntfy, Signify (Philips Hue), Shelly of Home Assistant.
+Weer, plaatsen en regen buiten Nederland: [Open-Meteo](https://open-meteo.com). Regen in Nederland en België: [Buienradar](https://www.buienradar.nl). Nieuws: de feeds die je zelf kiest, zoals [NOS](https://nos.nl) en [BBC](https://www.bbc.co.uk/news). Koersen: [Yahoo Finance](https://finance.yahoo.com), alleen voor persoonlijk gebruik. Muziek: [Spotify](https://www.spotify.com). Deurbel: [ntfy](https://ntfy.sh). IdleDash is niet verbonden aan Google, Apple, Buienradar, de NOS, de BBC, Yahoo, ntfy, Spotify, Signify (Philips Hue), Shelly of Home Assistant.
 
 ## Licentie
 
@@ -114,7 +127,7 @@ MIT, zie [LICENSE](LICENSE).
 
 IdleDash is a dashboard for your extra screen. It appears by itself as soon as no windows are left on that screen, and disappears again when you drag something onto it. It never takes over your keyboard.
 
-**What's on it:** clock, weather and rain radar, your events from Google Calendar, Apple iCloud and calendar links (and adding events), Google Tasks, news and RSS (BBC, NOS or any site with a feed), a photo slideshow, countdowns, smart home control for Home Assistant, Philips Hue and Shelly (with groups, colors and white tones), doorbell notifications via ntfy (pausing your music and playing a sound), stocks and crypto, shortcuts to your apps and websites, backups, what's playing in Spotify or your browser, PC stats, a focus timer, themes (including your own photo as a background, also per widget) and a night mode. The app is available in English and Dutch.
+**What's on it:** clock, weather and rain radar, your events from Google Calendar, Apple iCloud and calendar links (and adding events), Google Tasks, news and RSS (BBC, NOS or any site with a feed), a photo slideshow, countdowns, smart home control for Home Assistant, Philips Hue and Shelly (with groups, colors and white tones), doorbell notifications via ntfy (pausing your music and playing a sound), one-click Spotify playlists (Premium), stocks and crypto, shortcuts to your apps and websites, backups, what's playing in Spotify or your browser, PC stats, a focus timer, themes (including your own photo as a background, also per widget) and a night mode. The app is available in English and Dutch.
 
 **Install:** download **IdleDash-Setup-….exe** from [Releases](https://github.com/MeesjeKeesie/IdleDash/releases/latest). If Windows says "Windows protected your PC", click **More info** and **Run anyway**. Then click the IdleDash icon next to the clock, open the settings and choose **English** under Language and display (by default IdleDash follows your Windows language).
 

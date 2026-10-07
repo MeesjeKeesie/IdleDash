@@ -2,6 +2,30 @@
 
 Bij elke release op GitHub plak je het stuk van die versie in de beschrijving.
 
+## 1.3.1
+
+**Nederlands**
+
+Nieuw:
+- **Playlists op Spotify**: de nieuwe widget Playlists toont je gekozen playlists als tegels. Eén klik en de playlist speelt op deze pc, desnoods start IdleDash Spotify eerst zelf. Met shuffle begint hij bij een willekeurig nummer. Hiervoor is Spotify Premium nodig, en je maakt eenmalig een eigen Spotify-app aan (de stappen staan in de instellingen).
+- **Fotomap als achtergrond**: kies een map, en de achtergrond wisselt na een tijd die je zelf kiest naar een volgende foto, met een zachte overgang.
+- **Foto passend maken**: kies net als bij Windows tussen Opvullen (met keuze welk deel zichtbaar blijft), Aanpassen (de hele foto, met een wazige rand), Uitrekken en Centreren.
+- **Taken**: wat het eerst af moet staat nu bovenaan: te laat, vandaag, morgen enzovoort. Taken zonder datum komen onderaan en subtaken blijven bij hun hoofdtaak. Per widget kun je terug naar de volgorde van Google Taken.
+
+Opgelost:
+- Het instellingenvenster kon op een kleiner scherm of bij een hoge schaal (125%, 150%) met de titelbalk buiten beeld openen. Vensters passen nu altijd op het scherm waar ze openen.
+
+**English**
+
+New:
+- **Playlists on Spotify**: the new Playlists widget shows your chosen playlists as tiles. One click and the playlist plays on this PC; if needed, IdleDash starts Spotify first. With shuffle it starts at a random track. This requires Spotify Premium, and you create your own Spotify app once (the steps are in the settings).
+- **Photo folder as background**: choose a folder and the background changes to the next photo after a time you choose, with a soft transition.
+- **Photo fit**: just like in Windows, choose between Fill (with a choice of which part stays visible), Fit (the whole photo, with a blurred edge), Stretch and Center.
+- **Tasks**: what's due first is now at the top: overdue, today, tomorrow and so on. Tasks without a date go to the bottom and subtasks stay with their main task. Per widget you can switch back to the Google Tasks order.
+
+Fixed:
+- On a smaller screen or with high scaling (125%, 150%), the settings window could open with its title bar off screen. Windows now always fit on the screen they open on.
+
 ## 1.3.0
 
 **Nederlands**

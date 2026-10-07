@@ -25,7 +25,7 @@
     <Grid x:Name="Root" Background="Transparent">
 
         <!-- Eigen foto als achtergrond, met een donkere laag zodat tekst leesbaar blijft -->
-        <Image x:Name="BackgroundImage" Stretch="UniformToFill" Visibility="Collapsed" IsHitTestVisible="False"/>
+        <Grid x:Name="BackgroundLayer" IsHitTestVisible="False" ClipToBounds="True" Visibility="Collapsed"/>
         <Border x:Name="BackgroundTint" Background="Black" Opacity="0" IsHitTestVisible="False"/>
 
         <!-- Zachte gloed bovenin, alsof het licht van de lucht komt -->
