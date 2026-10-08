@@ -8,6 +8,42 @@ namespace IdleDash;
 /// <summary>Kleine vensters: iets bevestigen (bv. voordeur ontgrendelen), eventueel met pincode.</summary>
 public static class Dialogs
 {
+    /// <summary>Om een korte tekst vragen, bijvoorbeeld een nieuwe naam. Null als je annuleert.</summary>
+    public static string? Prompt(string title, string message, string value)
+    {
+        var window = new Window { Topmost = true, ResizeMode = ResizeMode.NoResize, ShowInTaskbar = false };
+        Ui.StyleWindow(window, 420, 240);
+        window.SizeToContent = SizeToContent.Height;
+        window.Title = title;
+        var panel = new StackPanel { Margin = new Thickness(28, 22, 28, 22) };
+        panel.Children.Add(new TextBlock { Text = title, FontSize = 20, TextWrapping = TextWrapping.Wrap });
+        panel.Children.Add(Ui.Hint(message, 8));
+        var box = new TextBox { Text = value, Margin = new Thickness(0, 12, 0, 0) };
+        panel.Children.Add(box);
+        string? result = null;
+        var save = Ui.Button(Loc.T("Opslaan"), () => { result = box.Text; window.Close(); }, accent: true);
+        var row = Ui.Row(save, Ui.Button(Loc.T("Annuleren"), window.Close));
+        row.Margin = new Thickness(0, 18, 0, 0);
+        panel.Children.Add(row);
+        window.Content = panel;
+        window.KeyDown += (_, e) =>
+        {
+            if (e.Key == Key.Escape) window.Close();
+            if (e.Key == Key.Enter)
+            {
+                result = box.Text;
+                window.Close();
+            }
+        };
+        window.Loaded += (_, _) =>
+        {
+            box.Focus();
+            box.SelectAll();
+        };
+        window.ShowDialog();
+        return result;
+    }
+
     public static (bool Ok, string? Code) Confirm(string title, string message, string yes, bool askCode = false)
     {
         var window = new Window { Topmost = true, ResizeMode = ResizeMode.NoResize, ShowInTaskbar = false };

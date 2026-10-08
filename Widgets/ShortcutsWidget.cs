@@ -45,10 +45,10 @@ public sealed class ShortcutsWidget : WidgetBase
         var items = Items;
         _empty.Text = Loc.T("Sleep apps, snelkoppelingen of een link uit je browser hierheen, of voeg ze toe via het tandwieltje.");
         _empty.Visibility = items.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
-        foreach (var item in items) _tiles.Children.Add(CreateTile(item));
+        for (int i = 0; i < items.Count; i++) _tiles.Children.Add(CreateTile(items[i], i, items.Count));
     }
 
-    private Button CreateTile(ShortcutItem item)
+    private Button CreateTile(ShortcutItem item, int index, int count)
     {
         var icon = new Grid { Width = 40, Height = 40, HorizontalAlignment = HorizontalAlignment.Center };
         var glyph = Text(item.IsWeb ? "\uE774" : "\uE71D", 24, "TextSecondaryBrush");
@@ -85,7 +85,37 @@ public sealed class ShortcutsWidget : WidgetBase
             Style = (Style)FindResource("RowButton"),
         };
         button.Click += (_, _) => Launch(item);
+
+        // Rechtsklikmenu: openen, hernoemen, verplaatsen en verwijderen zonder de instellingen
+        var menu = new ContextMenu { Style = (Style)FindResource("DashContextMenu") };
+        MenuItem Item(string header, Action action, bool enabled = true)
+        {
+            var menuItem = new MenuItem { Header = header, Style = (Style)FindResource("DashMenuItem"), IsEnabled = enabled };
+            menuItem.Click += (_, _) => action();
+            return menuItem;
+        }
+        menu.Items.Add(Item(Loc.T("Openen"), () => Launch(item)));
+        menu.Items.Add(Item(Loc.T("Naam wijzigen…"), () =>
+        {
+            if (Dialogs.Prompt(Loc.T("Naam wijzigen"), Loc.T("Nieuwe naam voor deze snelkoppeling:"), item.Name) is string name && name.Trim().Length > 0)
+                Change(items => items[index].Name = name.Trim(), index);
+        }));
+        menu.Items.Add(Item(Loc.T("Naar links"), () => Change(items => (items[index - 1], items[index]) = (items[index], items[index - 1]), index), index > 0));
+        menu.Items.Add(Item(Loc.T("Naar rechts"), () => Change(items => (items[index + 1], items[index]) = (items[index], items[index + 1]), index + 1), index < count - 1));
+        menu.Items.Add(Item(Loc.T("Verwijderen"), () => Change(items => items.RemoveAt(index), index)));
+        button.ContextMenu = menu;
         return button;
+    }
+
+    /// <summary>Een wijziging aan de lijst doorvoeren en bewaren (alleen als die plek nog bestaat).</summary>
+    private void Change(Action<List<ShortcutItem>> change, int needed)
+    {
+        var items = Items;
+        if (needed < 0 || needed >= items.Count) return;
+        change(items);
+        Config.Set("items", items);
+        Settings.Save();
+        Render();
     }
 
     private static async Task LoadIconAsync(ShortcutItem item, Image image, UIElement fallback)

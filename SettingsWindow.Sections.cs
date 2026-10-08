@@ -13,6 +13,7 @@ public partial class SettingsWindow
 
     private void BuildLanguageSection()
     {
+        LanguagePanel.Children.Clear();
         void Changed()
         {
             _settings.NotifyChanged();   // het dashboard zet de nieuwe taal door; dit venster wordt dan opnieuw geopend
@@ -111,8 +112,11 @@ public partial class SettingsWindow
                 };
                 if (dialog.ShowDialog(this) != true) return;
                 theme.Photo = dialog.FileName;
+                theme.PhotoCrop = null;   // nieuwe foto: oude uitsnede past niet meer
                 photoName.Text = Path.GetFileName(dialog.FileName);
+                if (theme.PhotoFit == "custom" && !EditCrop(theme)) theme.PhotoFit = "fill";
                 Edited();
+                BuildThemeSection();
             })));
         }
         if (theme.Background == "folder")
@@ -141,12 +145,27 @@ public partial class SettingsWindow
         if (theme.Background is "photo" or "folder")
         {
             ThemePanel.Children.Add(Ui.Label(Loc.T("Passend maken")));
-            ThemePanel.Children.Add(Ui.Combo(new[]
+            var fits = new List<(string, string)>
             {
                 (Loc.T("Opvullen (scherm helemaal vol)"), "fill"), (Loc.T("Aanpassen (hele foto zichtbaar)"), "fit"),
                 (Loc.T("Uitrekken"), "stretch"), (Loc.T("Centreren (ware grootte)"), "center"),
-            }, theme.PhotoFit, v => { theme.PhotoFit = v; Edited(); BuildThemeSection(); }));
-            if (theme.PhotoFit == "fill")
+            };
+            if (theme.Background == "photo") fits.Add((Loc.T("Zelf kiezen (uitsnede)"), "custom"));
+            string currentFit = theme.PhotoFit == "custom" && theme.Background != "photo" ? "fill" : theme.PhotoFit;
+            ThemePanel.Children.Add(Ui.Combo(fits, currentFit, v =>
+            {
+                if (v == "custom" && CropRect.Parse(theme.PhotoCrop) == null && !EditCrop(theme))
+                {
+                    BuildThemeSection();   // geannuleerd: keuze terugzetten
+                    return;
+                }
+                theme.PhotoFit = v;
+                Edited();
+                BuildThemeSection();
+            }));
+            if (currentFit == "custom")
+                ThemePanel.Children.Add(Ui.Row(Ui.Button(Loc.T("Uitsnede aanpassen…"), () => { if (EditCrop(theme)) Edited(); })));
+            if (currentFit == "fill")
             {
                 ThemePanel.Children.Add(Ui.Label(Loc.T("Welk deel zichtbaar blijft")));
                 ThemePanel.Children.Add(Ui.Combo(new[]
@@ -821,5 +840,20 @@ public partial class SettingsWindow
             status.Text = await SpotifyService.ConnectAsync() ?? "";
         }, accent: true)));
         SpotifyPanel.Children.Add(status);
+    }
+
+    /// <summary>De uitsnede-kiezer voor de eigen foto. True als je een nieuwe uitsnede hebt opgeslagen.</summary>
+    private bool EditCrop(ThemeSettings theme)
+    {
+        if (theme.Photo == null || !File.Exists(theme.Photo)) return false;
+        var image = PhotoLoader.Load(theme.Photo, 1800);
+        if (image == null) return false;
+        var screen = MonitorHelper.FindTarget(_settings.MonitorDeviceName);
+        double width = screen?.Bounds.Width ?? 1920, height = screen?.Bounds.Height ?? 1080;
+        var window = new CropWindow(image, width, height, CropRect.Parse(theme.PhotoCrop)) { Owner = this };
+        if (window.ShowDialog() != true || window.Result is not CropRect crop) return false;
+        theme.PhotoCrop = crop.ToString();
+        theme.PhotoFit = "custom";
+        return true;
     }
 }

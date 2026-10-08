@@ -183,6 +183,21 @@ public static class SpotifyApi
         ?? devices.FirstOrDefault(d => d.IsActive)
         ?? devices.FirstOrDefault(d => d.Type.Equals("Computer", StringComparison.OrdinalIgnoreCase));
 
+    /// <summary>Of Spotify nu shuffelt, uit GET /me/player. Null als er niets speelt (Spotify antwoordt dan leeg).</summary>
+    public static bool? ParseShuffle(string json)
+    {
+        if (string.IsNullOrWhiteSpace(json)) return null;
+        try
+        {
+            using var doc = JsonDocument.Parse(json);
+            return doc.RootElement.TryGetProperty("shuffle_state", out var s) && s.ValueKind is JsonValueKind.True or JsonValueKind.False ? s.GetBoolean() : null;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
     public static string PlayBody(string contextUri, int? offset) =>
         offset is int position
             ? JsonSerializer.Serialize(new { context_uri = contextUri, offset = new { position } })

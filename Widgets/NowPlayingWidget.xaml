@@ -36,6 +36,8 @@
                             ToolTip="Afspelen of pauzeren" Click="PlayPauseButton_Click"/>
                     <Button x:Name="NextButton" Style="{StaticResource IconButton}" Content="&#xE893;"
                             ToolTip="Volgende" Click="NextButton_Click"/>
+                    <Button x:Name="ShuffleButton" Style="{StaticResource IconButton}" Content="&#xE8B1;"
+                            ToolTip="Shuffle" Click="ShuffleButton_Click" Visibility="Collapsed"/>
                 </StackPanel>
             </StackPanel>
         </Grid>

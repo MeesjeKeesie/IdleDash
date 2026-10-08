@@ -57,6 +57,9 @@ public class AppSettings
 
     public SmartHomeSettings SmartHome { get; set; } = new();
 
+    /// <summary>Welk onderdeel van de instellingen het laatst open stond.</summary>
+    public string? LastSettingsPage { get; set; }
+
     /// <summary>Spotify-koppeling (eigen Spotify-app per gebruiker) voor de widget Playlists.</summary>
     public SpotifySettings Spotify { get; set; } = new();
 

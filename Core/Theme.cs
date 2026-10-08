@@ -24,6 +24,9 @@ public class ThemeSettings
     /// <summary>Bij opvullen: welk deel zichtbaar blijft (center, top, bottom, left, right).</summary>
     public string PhotoAlign { get; set; } = "center";
 
+    /// <summary>Zelf gekozen uitsnede (bij PhotoFit = "custom"), als "links,boven,breedte,hoogte" tussen 0 en 1.</summary>
+    public string? PhotoCrop { get; set; }
+
     // Fotomap als wisselende achtergrond
     public string? PhotoFolder { get; set; }
     public bool PhotoSubfolders { get; set; } = true;

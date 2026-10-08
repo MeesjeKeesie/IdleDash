@@ -46,6 +46,7 @@ public partial class SettingsWindow : Window
         BuildSpotifySection();
         SpotifyService.StateChanged += BuildSpotifySection;
         Closed += (_, _) => SpotifyService.StateChanged -= BuildSpotifySection;
+        SetupNavigation();
         NtfyService.StatusChanged += UpdateDoorbellStatus;
         Closed += (_, _) => NtfyService.StatusChanged -= UpdateDoorbellStatus;
 

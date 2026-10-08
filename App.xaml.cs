@@ -41,7 +41,7 @@ public partial class App : Application
         SpotifyService.Configure(Settings);
         NtfyService.Received += OnDoorbell;
         ConfigureDoorbell();
-        Loc.Changed += () => Dispatcher.BeginInvoke(ReopenSettings);
+        Loc.Changed += () => Dispatcher.BeginInvoke(new Action(() => _settingsWindow?.RefreshLanguage()));
 
         var dashboard = new MainWindow(Settings);
         _dashboard = dashboard;

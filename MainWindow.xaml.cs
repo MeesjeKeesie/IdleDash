@@ -221,7 +221,7 @@ public partial class MainWindow : Window
     {
         var theme = _settings.Theme;
         string key = string.Join("|", theme.Background, theme.Color1, theme.Color2, theme.Photo, theme.PhotoDim, theme.PhotoFit,
-            theme.PhotoAlign, theme.PhotoFolder, theme.PhotoSubfolders, theme.PhotoInterval, theme.PhotoOrder);
+            theme.PhotoAlign, theme.PhotoFolder, theme.PhotoSubfolders, theme.PhotoInterval, theme.PhotoOrder, theme.PhotoCrop);
         if (key == _backgroundKey) return;
         _backgroundKey = key;
         _backgroundVersion++;
@@ -315,7 +315,10 @@ public partial class MainWindow : Window
         var theme = _settings.Theme;
         double width = _target?.Bounds.Width ?? 2560, height = _target?.Bounds.Height ?? 1440;
         string fit = theme.PhotoFit, align = theme.PhotoAlign;
-        var image = await Task.Run(() => PhotoLoader.LoadForScreen(path, width, height, fit));
+        // Zelf gekozen uitsnede (alleen bij één eigen foto); bij een fotomap valt dat terug op opvullen
+        CropRect? crop = fit == "custom" && theme.Background == "photo" ? CropRect.Parse(theme.PhotoCrop) : null;
+        if (fit == "custom") (fit, align) = crop != null ? ("fill", "center") : ("fill", align);
+        var image = await Task.Run(() => crop is CropRect c ? PhotoLoader.LoadCropped(path, width, height, c) : PhotoLoader.LoadForScreen(path, width, height, fit));
         if (version != _backgroundVersion) return true;   // intussen een ander thema gekozen
         if (image == null) return false;
 

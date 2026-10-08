@@ -181,6 +181,36 @@ public static class SpotifyService
         }
     }
 
+    /// <summary>Of Spotify nu shuffelt (null als dat niet bekend is, bv. als er niets speelt).</summary>
+    public static async Task<bool?> GetShuffleAsync()
+    {
+        try
+        {
+            string? token = await AccessTokenAsync();
+            return token == null ? null : SpotifyApi.ParseShuffle(await SpotifyApi.SendAsync(HttpMethod.Get, "me/player", token));
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    /// <summary>Shuffle aan of uit. Geeft een foutmelding terug, of null.</summary>
+    public static async Task<string?> SetShuffleAsync(bool on)
+    {
+        try
+        {
+            string? token = await AccessTokenAsync();
+            if (token == null) return Loc.T("Koppel Spotify opnieuw in de instellingen.");
+            await SpotifyApi.SendAsync(HttpMethod.Put, $"me/player/shuffle?state={(on ? "true" : "false")}", token);
+            return null;
+        }
+        catch (Exception ex)
+        {
+            return Describe(ex);
+        }
+    }
+
     private static async Task<List<SpotifyDevice>> DevicesAsync(string token) =>
         SpotifyApi.ParseDevices(await SpotifyApi.SendAsync(HttpMethod.Get, "me/player/devices", token));
 

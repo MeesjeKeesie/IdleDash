@@ -21,10 +21,10 @@ Een dashboard voor je extra scherm. Het verschijnt vanzelf zodra daar geen venst
 - Een melding als de deurbel gaat (via ntfy): je muziek pauzeert en er klinkt een geluid
 - Aandelen, indexen en crypto, met een grafiekje van de dag
 - Snelkoppelingen naar je apps en websites
-- Wat er speelt in Spotify of je browser, met vorige, pauze en volgende
-- Je Spotify-playlists starten met één klik (Spotify Premium)
+- Wat er speelt in Spotify of je browser, met vorige, pauze, volgende en shuffle
+- Je Spotify-playlists starten met één klik (Spotify Premium), en tegels voor playlists van Apple Music, YouTube Music en andere diensten
 - PC-stats (processor, videokaart, geheugen) en een focustimer
-- Thema's: kant-en-klaar of zelf gemaakt, met je eigen foto of een wisselende fotomap als achtergrond, ook per widget
+- Thema's: kant-en-klaar of zelf gemaakt, met je eigen foto (zelf de uitsnede kiezen) of een wisselende fotomap als achtergrond, ook per widget
 - Een nachtmodus die het scherm 's avonds dimt
 - Back-ups van al je instellingen, ook elke dag automatisch
 - Nederlands en Engels
@@ -81,7 +81,7 @@ Met de widget Playlists start je een playlist met één klik. Dit werkt alleen m
 4. Vink **Web API** aan, ga akkoord met de voorwaarden en klik op **Save**.
 5. Kopieer de **Client ID**, plak hem in IdleDash bij Instellingen > Spotify en klik op **Koppelen met Spotify**.
 
-Voeg daarna de widget Playlists toe en kies met het tandwieltje welke playlists erop komen.
+Voeg daarna de widget Playlists toe en kies met het tandwieltje welke playlists erop komen. Daar kun je ook een link plakken naar een playlist uit Apple Music, YouTube Music, Deezer, Tidal of SoundCloud. Die opent IdleDash dan in de app of je browser; YouTube Music begint meestal meteen, bij Apple Music druk je zelf op play.
 
 ## Deurbel
 

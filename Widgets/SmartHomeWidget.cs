@@ -222,6 +222,13 @@ public sealed class SmartHomeWidget : WidgetBase
             var current = _devices.FirstOrDefault(d => d.Key == device.Key) ?? device;
             return await SmartHomeService.InvokeAsync(current, action, value, null, value2);
         });
+        // Heeft deze widget een eigen thema, dan krijgt de kiezer dat ook (hij staat in een los venstertje)
+        for (DependencyObject? node = this; node != null; node = VisualTreeHelper.GetParent(node))
+        {
+            if (node is not WidgetHost host) continue;
+            foreach (System.Collections.DictionaryEntry entry in host.Resources) picker.Resources[entry.Key] = entry.Value;
+            break;
+        }
         var popup = new Popup
         {
             Child = picker,

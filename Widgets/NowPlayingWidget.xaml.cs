@@ -6,6 +6,7 @@ using System.Windows.Threading;
 using Windows.Media.Control;
 
 using IdleDash.Core;
+using IdleDash.Services;
 
 namespace IdleDash.Widgets;
 
@@ -31,6 +32,10 @@ public partial class NowPlayingWidget : WidgetBase
     private DateTimeOffset _positionUpdated;
     private bool _playing;
     private int _mediaVersion;
+    private readonly DispatcherTimer _sessionTimer = new() { Interval = TimeSpan.FromSeconds(2) };
+    private bool _shuffleOn;
+    private bool _shuffleViaSpotify;
+    private DateTime _spotifyShuffleChecked;
 
     public NowPlayingWidget()
     {
@@ -39,7 +44,8 @@ public partial class NowPlayingWidget : WidgetBase
         _progressTimer.Tick += (_, _) => UpdateProgress();
 
         // Windows meldt veranderingen op een achtergrondthread; via de Dispatcher terug naar het scherm
-        _onSessionChanged = (_, _) => Dispatcher.InvokeAsync(() => AttachSession(_manager?.GetCurrentSession()));
+        _onSessionChanged = (_, _) => Dispatcher.InvokeAsync(FollowPlayingSession);
+        _sessionTimer.Tick += (_, _) => FollowPlayingSession();
         _onMediaChanged = (_, _) => Dispatcher.InvokeAsync(() => { _ = UpdateMediaAsync(); });
         _onPlaybackChanged = (_, _) => Dispatcher.InvokeAsync(UpdatePlayback);
         _onTimelineChanged = (_, _) => Dispatcher.InvokeAsync(UpdateTimeline);
@@ -55,7 +61,8 @@ public partial class NowPlayingWidget : WidgetBase
             _manager ??= await GlobalSystemMediaTransportControlsSessionManager.RequestAsync();
             if (!IsRunning) return;   // intussen alweer verborgen
             _manager.CurrentSessionChanged += _onSessionChanged;
-            AttachSession(_manager.GetCurrentSession());
+            AttachSession(BestSession());
+            _sessionTimer.Start();
         }
         catch
         {
@@ -66,8 +73,76 @@ public partial class NowPlayingWidget : WidgetBase
     protected override void OnStop()
     {
         _progressTimer.Stop();
+        _sessionTimer.Stop();
         if (_manager != null) _manager.CurrentSessionChanged -= _onSessionChanged;
         AttachSession(null);
+    }
+
+    /// <summary>De app die echt speelt. Speelt er niets, dan blijft het widget bij wat er stond (of de keuze van Windows).</summary>
+    private GlobalSystemMediaTransportControlsSession? BestSession()
+    {
+        if (_manager == null) return null;
+        try
+        {
+            var current = _manager.GetCurrentSession();
+            if (IsPlaying(current)) return current;
+            var sessions = _manager.GetSessions()?.ToList() ?? new List<GlobalSystemMediaTransportControlsSession>();
+            if (sessions.FirstOrDefault(IsPlaying) is { } playing) return playing;
+            return sessions.FirstOrDefault(s => _session != null && s.SourceAppUserModelId == _session.SourceAppUserModelId) ?? current;
+        }
+        catch
+        {
+            return _manager.GetCurrentSession();
+        }
+    }
+
+    private static bool IsPlaying(GlobalSystemMediaTransportControlsSession? session)
+    {
+        try
+        {
+            return session?.GetPlaybackInfo()?.PlaybackStatus == GlobalSystemMediaTransportControlsSessionPlaybackStatus.Playing;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private void FollowPlayingSession()
+    {
+        var best = BestSession();
+        if ((best == null) != (_session == null) || best?.SourceAppUserModelId != _session?.SourceAppUserModelId) AttachSession(best);
+    }
+
+    private void SetShuffleVisual(bool on)
+    {
+        _shuffleOn = on;
+        ShuffleButton.SetResourceReference(ForegroundProperty, on ? "BarBrush" : "TextMutedBrush");
+        ShuffleButton.ToolTip = on ? Loc.T("Shuffle staat aan") : Loc.T("Shuffle staat uit");
+    }
+
+    private async Task RefreshSpotifyShuffleAsync()
+    {
+        _spotifyShuffleChecked = DateTime.Now;
+        if (await SpotifyService.GetShuffleAsync() is bool on && _shuffleViaSpotify) SetShuffleVisual(on);
+    }
+
+    private async void ShuffleButton_Click(object sender, RoutedEventArgs e)
+    {
+        bool target = !_shuffleOn;
+        SetShuffleVisual(target);   // meteen laten zien; terugzetten als het niet lukt
+        bool ok;
+        try
+        {
+            ok = _shuffleViaSpotify
+                ? await SpotifyService.SetShuffleAsync(target) == null
+                : _session != null && await _session.TryChangeShuffleActiveAsync(target);
+        }
+        catch
+        {
+            ok = false;
+        }
+        if (!ok) SetShuffleVisual(!target);
     }
 
     private void AttachSession(GlobalSystemMediaTransportControlsSession? session)
@@ -82,6 +157,7 @@ public partial class NowPlayingWidget : WidgetBase
         _session = session;
         if (_session == null)
         {
+            ShuffleButton.Visibility = Visibility.Collapsed;
             ShowNothing();
             return;
         }
@@ -131,6 +207,14 @@ public partial class NowPlayingWidget : WidgetBase
             PlayPauseButton.IsEnabled = info.Controls.IsPlayPauseToggleEnabled || info.Controls.IsPlayEnabled || info.Controls.IsPauseEnabled;
             PrevButton.IsEnabled = info.Controls.IsPreviousEnabled;
             NextButton.IsEnabled = info.Controls.IsNextEnabled;
+
+            // Shuffle: via Windows als de app dat ondersteunt, anders via de Spotify-koppeling
+            bool viaWindows = info.Controls.IsShuffleEnabled;
+            _shuffleViaSpotify = !viaWindows && SpotifyService.IsConnected
+                && (session.SourceAppUserModelId?.Contains("Spotify", StringComparison.OrdinalIgnoreCase) ?? false);
+            ShuffleButton.Visibility = viaWindows || _shuffleViaSpotify ? Visibility.Visible : Visibility.Collapsed;
+            if (viaWindows) SetShuffleVisual(info.IsShuffleActive == true);
+            else if (_shuffleViaSpotify && DateTime.Now - _spotifyShuffleChecked > TimeSpan.FromSeconds(15)) _ = RefreshSpotifyShuffleAsync();
         }
         catch
         {

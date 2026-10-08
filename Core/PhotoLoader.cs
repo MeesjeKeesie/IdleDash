@@ -23,6 +23,21 @@ public static class PhotoLoader
             _ => Math.Min(1, Math.Max(screenWidth / w, screenHeight / h)),
         });
 
+    /// <summary>Alleen het zelf gekozen deel van de foto, zo groot als het scherm nodig heeft.</summary>
+    public static BitmapSource? LoadCropped(string path, double screenWidth, double screenHeight, CropRect crop)
+    {
+        var image = Load(path, (w, h) => Math.Min(1, Math.Max(screenWidth / (crop.W * w), screenHeight / (crop.H * h))));
+        if (image == null) return null;
+        int pw = image.PixelWidth, ph = image.PixelHeight;
+        int x = Math.Clamp((int)Math.Round(crop.X * pw), 0, pw - 1);
+        int y = Math.Clamp((int)Math.Round(crop.Y * ph), 0, ph - 1);
+        int width = Math.Clamp((int)Math.Round(crop.W * pw), 1, pw - x);
+        int height = Math.Clamp((int)Math.Round(crop.H * ph), 1, ph - y);
+        var cropped = new CroppedBitmap(image, new Int32Rect(x, y, width, height));
+        cropped.Freeze();
+        return cropped;
+    }
+
     /// <summary>scaleFor krijgt de breedte en hoogte zoals de foto rechtop staat, en geeft de verkleining (1 = origineel).</summary>
     private static BitmapSource? Load(string path, Func<int, int, double> scaleFor)
     {
@@ -98,6 +113,19 @@ public sealed class PhotoLayer : Grid
         Back.Source = fit == "fit" ? image : null;
         Back.Visibility = fit == "fit" ? Visibility.Visible : Visibility.Collapsed;
         Front.Stretch = fit switch { "fit" => Stretch.Uniform, "stretch" => Stretch.Fill, "center" => Stretch.None, _ => Stretch.UniformToFill };
+        if (fit == "center" && image is BitmapSource bitmap)
+        {
+            // Ware grootte: één pixel van de foto is één pixel op het scherm, ook bij een schaal van 125% of 150%
+            var dpi = VisualTreeHelper.GetDpi(this);
+            Front.Stretch = Stretch.Fill;
+            Front.Width = bitmap.PixelWidth / dpi.DpiScaleX;
+            Front.Height = bitmap.PixelHeight / dpi.DpiScaleY;
+        }
+        else
+        {
+            Front.Width = double.NaN;
+            Front.Height = double.NaN;
+        }
         bool fill = fit is not ("fit" or "stretch" or "center");
         Front.HorizontalAlignment = fill && align == "left" ? HorizontalAlignment.Left : fill && align == "right" ? HorizontalAlignment.Right : HorizontalAlignment.Center;
         Front.VerticalAlignment = fill && align == "top" ? VerticalAlignment.Top : fill && align == "bottom" ? VerticalAlignment.Bottom : VerticalAlignment.Center;

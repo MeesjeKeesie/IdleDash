@@ -2,6 +2,36 @@
 
 Bij elke release op GitHub plak je het stuk van die versie in de beschrijving.
 
+## 1.3.2
+
+**Nederlands**
+
+Nieuw:
+- **Shuffle-knop** in de muziekwidget, naast vorige, afspelen en volgende. Werkt met elke app die shuffle via Windows aanbiedt, en met Spotify via je Spotify-koppeling. De knop licht op als shuffle aan staat.
+- **Linktegels** in de widget Playlists: plak een link van een playlist uit Apple Music, YouTube Music, Deezer, Tidal of SoundCloud en je krijgt een tegel met hoesje. Een klik opent de playlist; YouTube Music begint dan meestal meteen.
+- **Uitsnede kiezen** voor je eigen foto als achtergrond, net als bij een profielfoto: schuif en zoom tot het goede stuk in het kader staat.
+- **Nieuwe instellingen**: een zijbalk met onderdelen en een zoekveld. Het venster opent waar je het laatst was, en een andere taal kiezen gebeurt nu zonder dat het venster opnieuw opent.
+- **Rechtsklikmenu bij snelkoppelingen**: openen, naam wijzigen, verplaatsen en verwijderen.
+
+Opgelost:
+- De muziekwidget volgt nu de app die echt speelt, ook als er nog een gepauzeerd tabblad openstaat.
+- Centreren (ware grootte) is nu echt pixel voor pixel, ook bij een schaal van 125% of 150%.
+- De kleurenkiezer van een lamp volgt het eigen thema van de widget.
+
+**English**
+
+New:
+- **Shuffle button** in the music widget, next to previous, play and next. Works with any app that offers shuffle through Windows, and with Spotify through your Spotify connection. The button lights up when shuffle is on.
+- **Link tiles** in the Playlists widget: paste a link to a playlist from Apple Music, YouTube Music, Deezer, Tidal or SoundCloud and you get a tile with cover art. One click opens the playlist; YouTube Music then usually starts right away.
+- **Choose a crop** for your own photo background, just like a profile picture: drag and zoom until the right part is in the frame.
+- **New settings**: a sidebar with sections and a search box. The window opens where you left off, and choosing another language no longer reopens the window.
+- **Right-click menu for shortcuts**: open, rename, move and remove.
+
+Fixed:
+- The music widget now follows the app that's actually playing, even when a paused tab is still open.
+- Center (actual size) is now truly pixel for pixel, also at 125% or 150% scaling.
+- A light's color picker follows the widget's own theme.
+
 ## 1.3.1
 
 **Nederlands**
