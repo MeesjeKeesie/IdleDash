@@ -57,6 +57,12 @@ public class AppSettings
 
     public SmartHomeSettings SmartHome { get; set; } = new();
 
+    /// <summary>Sneltoets om het dashboard op te roepen: "ctrl+alt+d", "ctrl+alt+i", "ctrl+shift+f12" of "none".</summary>
+    public string Hotkey { get; set; } = "ctrl+alt+d";
+
+    /// <summary>Eigen (gratis) sleutel van CARTO voor de kaart onder de treinkaart. Zonder sleutel: alleen het spoornetwerk.</summary>
+    public string? CartoKey { get; set; }
+
     /// <summary>Welk onderdeel van de instellingen het laatst open stond.</summary>
     public string? LastSettingsPage { get; set; }
 

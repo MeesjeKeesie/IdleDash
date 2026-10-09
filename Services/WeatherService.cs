@@ -5,7 +5,7 @@ using IdleDash.Core;
 
 namespace IdleDash.Services;
 
-public record DayForecast(DateTime Date, int Code, double Max, double Min);
+public record DayForecast(DateTime Date, int Code, double Max, double Min, DateTime? Sunrise = null, DateTime? Sunset = null);
 
 public record WeatherData(
     double Temperature,
@@ -29,33 +29,11 @@ public static class WeatherService
         string lon = longitude.ToString(CultureInfo.InvariantCulture);
         string url = "https://api.open-meteo.com/v1/forecast?latitude=" + lat + "&longitude=" + lon
             + "&current=temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,wind_speed_10m,is_day"
-            + "&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto&forecast_days=4";
+            + "&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset&timezone=auto&forecast_days=4";
 
         try
         {
-            using var doc = JsonDocument.Parse(await Web.Client.GetStringAsync(url));
-            var current = doc.RootElement.GetProperty("current");
-            var daily = doc.RootElement.GetProperty("daily");
-
-            var days = new List<DayForecast>();
-            var dates = daily.GetProperty("time");
-            for (int i = 0; i < dates.GetArrayLength(); i++)
-            {
-                days.Add(new DayForecast(
-                    DateTime.Parse(dates[i].GetString()!, CultureInfo.InvariantCulture),
-                    daily.GetProperty("weather_code")[i].GetInt32(),
-                    daily.GetProperty("temperature_2m_max")[i].GetDouble(),
-                    daily.GetProperty("temperature_2m_min")[i].GetDouble()));
-            }
-
-            return new WeatherData(
-                current.GetProperty("temperature_2m").GetDouble(),
-                current.GetProperty("apparent_temperature").GetDouble(),
-                current.GetProperty("weather_code").GetInt32(),
-                current.GetProperty("wind_speed_10m").GetDouble(),
-                (int)Math.Round(current.GetProperty("relative_humidity_2m").GetDouble()),
-                current.GetProperty("is_day").GetInt32() == 1,
-                days);
+            return Parse(await Web.Client.GetStringAsync(url));
         }
         catch
         {
@@ -64,6 +42,41 @@ public static class WeatherService
     }
 
     /// <summary>Plaatsen zoeken op naam (voor het instellingenscherm). null = zoeken lukte niet.</summary>
+    /// <summary>Het antwoord van Open-Meteo uitlezen.</summary>
+    public static WeatherData Parse(string json)
+    {
+        using var doc = JsonDocument.Parse(json);
+        var current = doc.RootElement.GetProperty("current");
+        var daily = doc.RootElement.GetProperty("daily");
+
+        var days = new List<DayForecast>();
+        var dates = daily.GetProperty("time");
+        for (int i = 0; i < dates.GetArrayLength(); i++)
+        {
+            days.Add(new DayForecast(
+                DateTime.Parse(dates[i].GetString()!, CultureInfo.InvariantCulture),
+                daily.GetProperty("weather_code")[i].GetInt32(),
+                daily.GetProperty("temperature_2m_max")[i].GetDouble(),
+                daily.GetProperty("temperature_2m_min")[i].GetDouble(),
+                TimeAt(daily, "sunrise", i),
+                TimeAt(daily, "sunset", i)));
+        }
+
+        return new WeatherData(
+            current.GetProperty("temperature_2m").GetDouble(),
+            current.GetProperty("apparent_temperature").GetDouble(),
+            current.GetProperty("weather_code").GetInt32(),
+            current.GetProperty("wind_speed_10m").GetDouble(),
+            (int)Math.Round(current.GetProperty("relative_humidity_2m").GetDouble()),
+            current.GetProperty("is_day").GetInt32() == 1,
+            days);
+    }
+
+    private static DateTime? TimeAt(JsonElement daily, string name, int i) =>
+        daily.TryGetProperty(name, out var values) && values.ValueKind == JsonValueKind.Array && i < values.GetArrayLength()
+        && values[i].GetString() is string text && DateTime.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.None, out var time)
+            ? time : null;
+
     public static async Task<List<Place>?> SearchPlacesAsync(string query)
     {
         string url = "https://geocoding-api.open-meteo.com/v1/search?count=6&format=json&language=" + Loc.Language + "&name="

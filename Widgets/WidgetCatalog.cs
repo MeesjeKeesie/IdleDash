@@ -30,6 +30,9 @@ public static class WidgetCatalog
         new("stocks",    "Aandelen",            "\uE9D2", 432, 312, _ => new StocksWidget()),
         new("shortcuts", "Snelkoppelingen",     "\uE71B", 432, 240, _ => new ShortcutsWidget()),
         new("playlists", "Playlists",           "\uE93C", 432, 240, _ => new PlaylistWidget()),
+        new("departures", "Vertrektijden",      "\uE7C0", 432, 336, _ => new DeparturesWidget()),
+        new("trainmap",  "Treinkaart",          "\uE826", 480, 360, _ => new TrainMapWidget()),
+        new("fact",      "Dagelijks feitje",    "\uE82F", 432, 288, _ => new FactWidget()),
     };
 
     public static WidgetDefinition? Find(string type) =>

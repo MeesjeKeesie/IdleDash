@@ -39,6 +39,7 @@ public partial class App : Application
         CalendarHub.Configure(Settings);
         SmartHomeService.Configure(Settings);
         SpotifyService.Configure(Settings);
+        TransitousApi.UserAgent = OnThisDay.UserAgent = $"IdleDash/{AppInfo.VersionText} (+https://github.com/MeesjeKeesie/IdleDash)";
         NtfyService.Received += OnDoorbell;
         ConfigureDoorbell();
         Loc.Changed += () => Dispatcher.BeginInvoke(new Action(() => _settingsWindow?.RefreshLanguage()));

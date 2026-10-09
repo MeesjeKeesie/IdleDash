@@ -35,6 +35,7 @@ public partial class SettingsWindow
         _pages.Add(("music", "Muziek", "\uE8D6", PageMusic));
         _pages.Add(("backup", "Back-up", "\uE81C", PageBackup));
         _pages.Add(("about", "Over IdleDash", "\uE946", PageAbout));
+        BuildHotkeySection();
         BuildNav();
         ShowPage(_settings.LastSettingsPage ?? "general");
     }
@@ -163,6 +164,29 @@ public partial class SettingsWindow
     private static void Flash(UIElement element) =>
         element.BeginAnimation(OpacityProperty, new DoubleAnimation(0.25, 1, TimeSpan.FromMilliseconds(450)) { RepeatBehavior = new RepeatBehavior(3) });
 
+    // ─────────────────────────── Sneltoets ───────────────────────────
+
+    private readonly StackPanel _hotkeyPanel = new();
+
+    private void BuildHotkeySection()
+    {
+        if (_hotkeyPanel.Parent == null) PageGeneral.Children.Add(_hotkeyPanel);
+        _hotkeyPanel.Children.Clear();
+        _hotkeyPanel.Children.Add(Ui.Section(Loc.T("Sneltoets")));
+        _hotkeyPanel.Children.Add(Ui.Hint(Loc.T("Roep het dashboard op met een toetscombinatie, ook als er vensters op dat scherm staan. Druk nog een keer om het weer te verbergen.")));
+        _hotkeyPanel.Children.Add(Ui.Combo(new[]
+        {
+            (Loc.T("Uit"), "none"), ("Ctrl + Alt + D", "ctrl+alt+d"), ("Ctrl + Alt + I", "ctrl+alt+i"), ("Ctrl + Shift + F12", "ctrl+shift+f12"),
+        }, MainWindow.HotkeyCombo(_settings.Hotkey) == null ? "none" : _settings.Hotkey, v =>
+        {
+            _settings.Hotkey = v;
+            _settings.Save();
+            Application.Current.Windows.OfType<MainWindow>().FirstOrDefault()?.ApplyHotkey();
+            BuildHotkeySection();
+        }));
+        if (MainWindow.HotkeyProblem is string problem) _hotkeyPanel.Children.Add(Ui.Hint(problem));
+    }
+
     // ─────────────────────────── Taal ───────────────────────────
 
     /// <summary>Andere taal gekozen: alles in dit venster opnieuw vertalen, zonder het te sluiten.</summary>
@@ -189,6 +213,7 @@ public partial class SettingsWindow
         BuildSpotifySection();
         UpdateGoogleSection();
         RefreshUpdateSection();
+        BuildHotkeySection();
         BuildNav();
         SearchBox.Text = "";
         ShowPage(_currentPage);

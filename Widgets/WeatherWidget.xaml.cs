@@ -73,6 +73,14 @@ public partial class WeatherWidget : WidgetBase
         DescText.Text = Loc.T("{0}, voelt als {1}", text, Loc.Degrees(data.FeelsLike));
         DetailText.Text = Loc.T("Wind {0}, luchtvochtigheid {1}%", Loc.Wind(data.Wind), data.Humidity);
 
+        // Zon op en onder (vandaag) en de stand van de maan
+        var today = data.Days.FirstOrDefault(d => d.Date.Date == DateTime.Today) ?? data.Days.FirstOrDefault();
+        SunText.Text = today?.Sunrise is DateTime rise && today.Sunset is DateTime set ? $"↑ {Loc.Time(rise)}   ↓ {Loc.Time(set)}" : "";
+        var (phase, _) = MoonPhase.Compute(DateTime.UtcNow);
+        MoonIcon.Content = MoonDrawing.Create(phase, 15);
+        MoonText.Text = Loc.T(MoonPhase.Name(phase));
+        SunMoonRow.Visibility = Visibility.Visible;
+
         ForecastGrid.Children.Clear();
         foreach (var day in data.Days.Skip(1).Take(3))
             ForecastGrid.Children.Add(CreateDay(day));

@@ -86,6 +86,7 @@ public partial class MainWindow : Window
 
         // Luisteren naar Windows: schermen aangesloten, losgekoppeld of resolutie veranderd
         HwndSource.FromHwnd(_hwnd)?.AddHook(WndProc);
+        ApplyHotkey();
         // Deurbel, beweging en andere smarthome-meldingen
         SmartHomeService.Triggered += device => ShowToast(device.Name, device.Value ?? Loc.T("Melding"));
 
@@ -105,9 +106,14 @@ public partial class MainWindow : Window
 
     private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
     {
-        const int WM_DISPLAYCHANGE = 0x007E;
+        const int WM_DISPLAYCHANGE = 0x007E, WM_HOTKEY = 0x0312;
         if (msg == WM_DISPLAYCHANGE)
             Dispatcher.InvokeAsync(FindTargetMonitor, DispatcherPriority.Background);
+        if (msg == WM_HOTKEY && wParam.ToInt32() == HotkeyId)
+        {
+            Dispatcher.InvokeAsync(ToggleManualShow);
+            handled = true;
+        }
         return IntPtr.Zero;
     }
 
@@ -143,9 +149,54 @@ public partial class MainWindow : Window
         {
             if (!Paused) ShowDashboard();
         }
-        else
+        else if (!_manualShow)
+        {
+            HideDashboard();   // met de sneltoets opgeroepen? Dan blijft het staan tot je nog een keer drukt
+        }
+    }
+
+    // ─────────────────────────── Sneltoets ───────────────────────────
+
+    private const int HotkeyId = 0x4944;
+    private bool _manualShow;
+
+    /// <summary>Uitleg als de gekozen sneltoets niet lukte (al in gebruik), anders null.</summary>
+    public static string? HotkeyProblem { get; private set; }
+
+    public static (uint Modifiers, uint Key)? HotkeyCombo(string? name) => name switch
+    {
+        "ctrl+alt+d" => (0x2 | 0x1, 0x44),
+        "ctrl+alt+i" => (0x2 | 0x1, 0x49),
+        "ctrl+shift+f12" => (0x2 | 0x4, 0x7B),
+        _ => null,
+    };
+
+    /// <summary>De sneltoets uit de instellingen (opnieuw) aanmelden bij Windows.</summary>
+    public void ApplyHotkey()
+    {
+        NativeMethods.UnregisterHotKey(_hwnd, HotkeyId);
+        HotkeyProblem = null;
+        if (HotkeyCombo(_settings.Hotkey) is not { } combo) return;
+        const uint MOD_NOREPEAT = 0x4000;
+        if (!NativeMethods.RegisterHotKey(_hwnd, HotkeyId, combo.Modifiers | MOD_NOREPEAT, combo.Key))
+            HotkeyProblem = Loc.T("Deze sneltoets is al in gebruik door een ander programma. Kies een andere.");
+    }
+
+    /// <summary>Sneltoets: dashboard tonen, ook over vensters op dat scherm heen. Nog een keer drukken (of Esc) verbergt het.</summary>
+    private void ToggleManualShow()
+    {
+        if (IsVisible)
         {
             HideDashboard();
+            return;
+        }
+        _manualShow = true;
+        Topmost = true;
+        ShowDashboard();
+        if (!IsVisible)
+        {
+            _manualShow = false;
+            Topmost = false;
         }
     }
 
@@ -164,6 +215,8 @@ public partial class MainWindow : Window
 
     private void HideDashboard()
     {
+        _manualShow = false;
+        Topmost = false;
         if (!IsVisible) return;
         if (_editMode) SetEditMode(false);
         AddPopup.IsOpen = false;
@@ -608,6 +661,7 @@ public partial class MainWindow : Window
     private void Window_KeyDown(object sender, KeyEventArgs e)
     {
         if (e.Key == Key.Escape && _editMode) SetEditMode(false);
+        else if (e.Key == Key.Escape && _manualShow) HideDashboard();
     }
 
     private void EditButton_Click(object sender, RoutedEventArgs e) => SetEditMode(true);

@@ -2,6 +2,26 @@
 
 Bij elke release op GitHub plak je het stuk van die versie in de beschrijving.
 
+## 1.4.0
+
+**Nederlands**
+
+Nieuw:
+- **Vertrektijden**: de eerstvolgende treinen van een station, met vertraging, spoorwijzigingen en treinen die niet rijden. Werkt internationaal via Transitous, een open bron. Wil je ook bus, tram en metro zien, zet dan "Alleen treinen" uit.
+- **Treinkaart**: zie waar de treinen in jouw regio nu rijden. De posities worden geschat uit de dienstregeling en vertragingen, en de stipjes bewegen vloeiend mee. IdleDash tekent zelf het spoor en de stations; met een gratis sleutel van CARTO komt er een donkere of lichte kaart onder.
+- **Dagelijks feitje**: elke dag "Vandaag in de geschiedenis" van Wikipedia (in het Nederlands of Engels) en een weetje dat ook zonder internet werkt.
+- **Zon en maan** in de weerwidget: zonsopkomst, zonsondergang en de maanfase van vandaag.
+- **Sneltoets**: roep het dashboard op met Ctrl + Alt + D, ook als er vensters op dat scherm staan. Nog een keer drukken of Esc verbergt het weer. Kies een andere combinatie in de instellingen onder Algemeen.
+
+**English**
+
+New:
+- **Departures**: the next trains from a station, with delays, platform changes and cancelled trains. Works internationally through Transitous, an open source. Want to see buses, trams and metros too? Turn off "Trains only".
+- **Train map**: see where trains in your region are running right now. Positions are estimated from timetables and delays, and the dots move smoothly. IdleDash draws the railway and stations itself; with a free CARTO key, a dark or light map goes underneath.
+- **Daily fact**: every day "On this day in history" from Wikipedia (in English or Dutch) and a fun fact that works without internet too.
+- **Sun and moon** in the weather widget: sunrise, sunset and today's moon phase.
+- **Keyboard shortcut**: bring up the dashboard with Ctrl + Alt + D, even when there are windows on that screen. Press it again or Esc to hide it. Choose another combination in the settings under General.
+
 ## 1.3.2
 
 **Nederlands**

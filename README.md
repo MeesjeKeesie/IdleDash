@@ -23,6 +23,8 @@ Een dashboard voor je extra scherm. Het verschijnt vanzelf zodra daar geen venst
 - Snelkoppelingen naar je apps en websites
 - Wat er speelt in Spotify of je browser, met vorige, pauze, volgende en shuffle
 - Je Spotify-playlists starten met één klik (Spotify Premium), en tegels voor playlists van Apple Music, YouTube Music en andere diensten
+- Vertrektijden van een station en een kaart met de treinen in je regio, ook in het buitenland
+- Elke dag een feitje: vandaag in de geschiedenis en een weetje
 - PC-stats (processor, videokaart, geheugen) en een focustimer
 - Thema's: kant-en-klaar of zelf gemaakt, met je eigen foto (zelf de uitsnede kiezen) of een wisselende fotomap als achtergrond, ook per widget
 - Een nachtmodus die het scherm 's avonds dimt
