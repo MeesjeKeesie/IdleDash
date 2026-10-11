@@ -36,6 +36,7 @@ public partial class SettingsWindow
         _pages.Add(("backup", "Back-up", "\uE81C", PageBackup));
         _pages.Add(("about", "Over IdleDash", "\uE946", PageAbout));
         BuildHotkeySection();
+        Closed += (_, _) => SetRecording(false);
         BuildNav();
         ShowPage(_settings.LastSettingsPage ?? "general");
     }
@@ -167,24 +168,84 @@ public partial class SettingsWindow
     // ─────────────────────────── Sneltoets ───────────────────────────
 
     private readonly StackPanel _hotkeyPanel = new();
+    private bool _recording;
+    private string? _hotkeyHint;
 
     private void BuildHotkeySection()
     {
         if (_hotkeyPanel.Parent == null) PageGeneral.Children.Add(_hotkeyPanel);
         _hotkeyPanel.Children.Clear();
         _hotkeyPanel.Children.Add(Ui.Section(Loc.T("Sneltoets")));
-        _hotkeyPanel.Children.Add(Ui.Hint(Loc.T("Roep het dashboard op met een toetscombinatie, ook als er vensters op dat scherm staan. Druk nog een keer om het weer te verbergen.")));
-        _hotkeyPanel.Children.Add(Ui.Combo(new[]
+        _hotkeyPanel.Children.Add(Ui.Hint(Loc.T("Roep het dashboard op met een toetscombinatie, ook als er vensters op dat scherm staan. Druk nog een keer of op Esc om het weer te verbergen.")));
+        string current = HotkeyText.Display(_settings.Hotkey);
+        _hotkeyPanel.Children.Add(new TextBlock
         {
-            (Loc.T("Uit"), "none"), ("Ctrl + Alt + D", "ctrl+alt+d"), ("Ctrl + Alt + I", "ctrl+alt+i"), ("Ctrl + Shift + F12", "ctrl+shift+f12"),
-        }, MainWindow.HotkeyCombo(_settings.Hotkey) == null ? "none" : _settings.Hotkey, v =>
+            Text = _recording ? Loc.T("Druk nu de toetsen die je wilt gebruiken… (Esc om te stoppen)") : current.Length > 0 ? current : Loc.T("Uit"),
+            FontSize = 18,
+            TextWrapping = TextWrapping.Wrap,
+            Margin = new Thickness(0, 12, 0, 0),
+        });
+        _hotkeyPanel.Children.Add(Ui.Row(
+            Ui.Button(_recording ? Loc.T("Stoppen") : Loc.T("Wijzigen"), () => SetRecording(!_recording), accent: !_recording),
+            Ui.Button(Loc.T("Uitzetten"), () => SaveHotkey("none"))));
+        _hotkeyPanel.Children.Add(Ui.Hint(_hotkeyHint ?? Loc.T("Gebruik twee van Ctrl, Alt en Shift (of de Windows-toets) samen met een letter, cijfer of F-toets.")));
+        if (!_recording && MainWindow.HotkeyProblem is string problem) _hotkeyPanel.Children.Add(Ui.Hint(problem));
+    }
+
+    private void SetRecording(bool on)
+    {
+        if (on == _recording) return;
+        _recording = on;
+        _hotkeyHint = null;
+        var dashboard = Application.Current.Windows.OfType<MainWindow>().FirstOrDefault();
+        if (on)
         {
-            _settings.Hotkey = v;
-            _settings.Save();
-            Application.Current.Windows.OfType<MainWindow>().FirstOrDefault()?.ApplyHotkey();
+            dashboard?.SuspendHotkey();   // anders vangt de oude sneltoets de toetsen weg
+            PreviewKeyDown += RecordKey;
+        }
+        else
+        {
+            PreviewKeyDown -= RecordKey;
+            dashboard?.ApplyHotkey();
+        }
+        BuildHotkeySection();
+    }
+
+    private void RecordKey(object sender, KeyEventArgs e)
+    {
+        e.Handled = true;
+        Key key = e.Key == Key.System ? e.SystemKey : e.Key;
+        if (key == Key.Escape)
+        {
+            SetRecording(false);
+            return;
+        }
+        if (key is Key.LeftCtrl or Key.RightCtrl or Key.LeftAlt or Key.RightAlt or Key.LeftShift or Key.RightShift or Key.LWin or Key.RWin) return;
+        var held = Keyboard.Modifiers;
+        uint modifiers = (held.HasFlag(ModifierKeys.Control) ? HotkeyText.Ctrl : 0) | (held.HasFlag(ModifierKeys.Alt) ? HotkeyText.Alt : 0)
+                       | (held.HasFlag(ModifierKeys.Shift) ? HotkeyText.Shift : 0) | (held.HasFlag(ModifierKeys.Windows) ? HotkeyText.Win : 0);
+        uint code = (uint)KeyInterop.VirtualKeyFromKey(key);
+        if (!HotkeyText.IsAllowed(modifiers, code))
+        {
+            _hotkeyHint = Loc.T("Die combinatie kan niet. Gebruik twee van Ctrl, Alt en Shift (of de Windows-toets) samen met een letter, cijfer of F-toets.");
             BuildHotkeySection();
-        }));
-        if (MainWindow.HotkeyProblem is string problem) _hotkeyPanel.Children.Add(Ui.Hint(problem));
+            return;
+        }
+        SaveHotkey(HotkeyText.Format(modifiers, code));
+    }
+
+    private void SaveHotkey(string value)
+    {
+        if (_recording)
+        {
+            PreviewKeyDown -= RecordKey;
+            _recording = false;
+        }
+        _hotkeyHint = null;
+        _settings.Hotkey = value;
+        _settings.Save();
+        Application.Current.Windows.OfType<MainWindow>().FirstOrDefault()?.ApplyHotkey();
+        BuildHotkeySection();
     }
 
     // ─────────────────────────── Taal ───────────────────────────

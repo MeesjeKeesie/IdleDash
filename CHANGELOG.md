@@ -2,6 +2,30 @@
 
 Bij elke release op GitHub plak je het stuk van die versie in de beschrijving.
 
+## 1.4.1
+
+**Nederlands**
+
+Nieuw:
+- **Storingen op het vertrekbord**: meldingen van de vervoerder, zoals storingen en werkzaamheden, staan bovenaan het bord. Treinen waar een melding bij hoort, krijgen een waarschuwingsteken. Wijs een melding aan voor de hele uitleg.
+- **Schuiven en zoomen op de treinkaart**: sleep om de kaart te verschuiven en zoom met het muiswiel of de knoppen rechtsboven. De kaart onthoudt waar je was; met het huisje ga je terug naar je gekozen plek.
+- **Zelf een sneltoets instellen**: kies onder Instellingen, Algemeen voor "Wijzigen" en druk de combinatie die je wilt.
+- De treinkaart heeft nu ronde hoeken, net als de rest van het dashboard.
+
+Opgelost:
+- Na de sneltoets bleef het dashboard over al je vensters liggen, waardoor je geen vensters meer naar dat scherm kon slepen. Het dashboard komt nu één keer naar voren en gaat vanzelf opzij zodra je dat scherm gebruikt. Esc werkt meteen, en je toetsenbord gaat daarna terug naar waar je was.
+
+**English**
+
+New:
+- **Disruptions on the departure board**: notices from the operator, such as disruptions and engineering works, appear at the top of the board. Trains with a notice get a warning sign. Point at a notice for the full details.
+- **Move and zoom the train map**: drag to move the map and zoom with the mouse wheel or the buttons in the top right. The map remembers where you were; the house button takes you back to your chosen place.
+- **Set your own keyboard shortcut**: under Settings, General, choose "Change" and press the combination you want.
+- The train map now has rounded corners, like the rest of the dashboard.
+
+Fixed:
+- After using the shortcut, the dashboard stayed on top of all your windows, so you couldn't drag windows onto that screen. The dashboard now comes to the front once and steps aside as soon as you use that screen. Esc works right away, and your keyboard goes back to where you were.
+
 ## 1.4.0
 
 **Nederlands**

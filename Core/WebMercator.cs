@@ -12,6 +12,14 @@ public static class WebMercator
         return ((lon + 180) / 360 * scale, (0.5 - Math.Log((1 + sin) / (1 - sin)) / (4 * Math.PI)) * scale);
     }
 
+    /// <summary>Nieuwe linkerbovenhoek na in- of uitzoomen, zodat het punt onder de muis op dezelfde plek blijft.</summary>
+    public static (double X, double Y) ZoomOrigin(double originX, double originY, int fromZoom, int toZoom, double pointX, double pointY)
+    {
+        var (lat, lon) = ToLatLon(originX + pointX, originY + pointY, fromZoom);
+        var (x, y) = ToPixel(lat, lon, toZoom);
+        return (x - pointX, y - pointY);
+    }
+
     public static (double Lat, double Lon) ToLatLon(double x, double y, double zoom)
     {
         double scale = TileSize * Math.Pow(2, zoom);

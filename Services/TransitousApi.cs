@@ -9,11 +9,20 @@ public sealed record TransitStop(string Id, string Name, double Lat, double Lon,
 
 public sealed record TransitStation(string Name, double Lat, double Lon, double Importance);
 
+/// <summary>Een melding van de vervoerder, zoals een storing of werkzaamheden.</summary>
+public sealed record TransitAlert(string Header, string Description, string? Severity, string? Effect)
+{
+    public bool IsSerious => Severity is "WARNING" or "SEVERE" || Effect is "NO_SERVICE" or "REDUCED_SERVICE" or "SIGNIFICANT_DELAYS" or "DETOUR";
+}
+
 public sealed record Departure(DateTimeOffset Planned, DateTimeOffset? Expected, string Line, string Destination, string? Track,
-    bool TrackChanged, bool Cancelled, string Mode, string? Color, bool RealTime)
+    bool TrackChanged, bool Cancelled, string Mode, string? Color, bool RealTime, IReadOnlyList<TransitAlert> Alerts)
 {
     public int DelayMinutes => Expected is { } expected ? (int)Math.Round((expected - Planned).TotalMinutes) : 0;
 }
+
+/// <summary>Het vertrekbord van een halte: de vertrekken en de meldingen voor de halte zelf.</summary>
+public sealed record DepartureBoard(List<Departure> Departures, List<TransitAlert> StopAlerts);
 
 /// <summary>Een trein op weg van het ene naar het volgende station, met de lijn waarover hij rijdt.</summary>
 public sealed record TrainSegment(string Name, string Mode, string? Color, double[] Lats, double[] Lons, double[] Distances,
@@ -85,14 +94,21 @@ public static class TransitousApi
 
     // ─────────────────────────── Vertrektijden ───────────────────────────
 
-    public static async Task<List<Departure>> GetDeparturesAsync(string stopId, int count, string language) =>
-        ParseDepartures(await GetAsync($"/api/{{v}}/stoptimes?stopId={Uri.EscapeDataString(stopId)}&n={count}&language={language}"));
+    public static async Task<DepartureBoard> GetDeparturesAsync(string stopId, int count, string language) =>
+        ParseBoard(await GetAsync($"/api/{{v}}/stoptimes?stopId={Uri.EscapeDataString(stopId)}&n={count}&language={language}"));
 
-    public static List<Departure> ParseDepartures(string json)
+    public static List<Departure> ParseDepartures(string json) => ParseBoard(json).Departures;
+
+    /// <summary>Alle meldingen van dit bord, elk één keer: eerst die voor de hele halte, dan die bij de vertrekken.</summary>
+    public static List<TransitAlert> AllAlerts(IEnumerable<TransitAlert> stopAlerts, IEnumerable<Departure> departures) =>
+        stopAlerts.Concat(departures.SelectMany(d => d.Alerts)).GroupBy(a => a.Header).Select(g => g.First()).ToList();
+
+    public static DepartureBoard ParseBoard(string json)
     {
         var list = new List<Departure>();
         using var doc = JsonDocument.Parse(json);
-        if (!doc.RootElement.TryGetProperty("stopTimes", out var times) || times.ValueKind != JsonValueKind.Array) return list;
+        var stopAlerts = doc.RootElement.TryGetProperty("place", out var stop) ? Alerts(stop) : new List<TransitAlert>();
+        if (!doc.RootElement.TryGetProperty("stopTimes", out var times) || times.ValueKind != JsonValueKind.Array) return new DepartureBoard(list, stopAlerts);
         foreach (var t in times.EnumerateArray())
         {
             if (!t.TryGetProperty("place", out var place)) continue;
@@ -104,7 +120,19 @@ public static class TransitousApi
             bool changed = Str(place, "track") is string actual && scheduledTrack != null && actual != scheduledTrack;
             bool cancelled = Bool(t, "cancelled") || Bool(t, "tripCancelled") || Bool(place, "cancelled");
             list.Add(new Departure(planned, Time(place, "departure"), line, destination, track, changed, cancelled,
-                Str(t, "mode") ?? "", ColorOf(Str(t, "routeColor")), Bool(t, "realTime")));
+                Str(t, "mode") ?? "", ColorOf(Str(t, "routeColor")), Bool(t, "realTime"), Alerts(place)));
+        }
+        return new DepartureBoard(list, stopAlerts);
+    }
+
+    private static List<TransitAlert> Alerts(JsonElement place)
+    {
+        var list = new List<TransitAlert>();
+        if (place.ValueKind != JsonValueKind.Object || !place.TryGetProperty("alerts", out var alerts) || alerts.ValueKind != JsonValueKind.Array) return list;
+        foreach (var a in alerts.EnumerateArray())
+        {
+            if (Str(a, "headerText") is not string header || header.Trim().Length == 0) continue;
+            list.Add(new TransitAlert(header.Trim(), (Str(a, "descriptionText") ?? "").Trim(), Str(a, "severityLevel"), Str(a, "effect")));
         }
         return list;
     }

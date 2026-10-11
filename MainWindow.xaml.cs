@@ -87,6 +87,7 @@ public partial class MainWindow : Window
         // Luisteren naar Windows: schermen aangesloten, losgekoppeld of resolutie veranderd
         HwndSource.FromHwnd(_hwnd)?.AddHook(WndProc);
         ApplyHotkey();
+        _manualWatch.Tick += (_, _) => WatchManualShow();
         // Deurbel, beweging en andere smarthome-meldingen
         SmartHomeService.Triggered += device => ShowToast(device.Name, device.Value ?? Loc.T("Melding"));
 
@@ -151,7 +152,7 @@ public partial class MainWindow : Window
         }
         else if (!_manualShow)
         {
-            HideDashboard();   // met de sneltoets opgeroepen? Dan blijft het staan tot je nog een keer drukt
+            HideDashboard();   // met de sneltoets opgeroepen? Dan gaat het pas opzij als je dat scherm gebruikt
         }
     }
 
@@ -159,17 +160,17 @@ public partial class MainWindow : Window
 
     private const int HotkeyId = 0x4944;
     private bool _manualShow;
+    private IntPtr _previousForeground;
+    private (IntPtr Window, IntPtr Monitor) _lastSeen;
+    private readonly DispatcherTimer _manualWatch = new() { Interval = TimeSpan.FromMilliseconds(250) };
 
     /// <summary>Uitleg als de gekozen sneltoets niet lukte (al in gebruik), anders null.</summary>
     public static string? HotkeyProblem { get; private set; }
 
-    public static (uint Modifiers, uint Key)? HotkeyCombo(string? name) => name switch
-    {
-        "ctrl+alt+d" => (0x2 | 0x1, 0x44),
-        "ctrl+alt+i" => (0x2 | 0x1, 0x49),
-        "ctrl+shift+f12" => (0x2 | 0x4, 0x7B),
-        _ => null,
-    };
+    public static (uint Modifiers, uint Key)? HotkeyCombo(string? name) => HotkeyText.Parse(name);
+
+    /// <summary>Sneltoets tijdelijk loslaten, bijvoorbeeld terwijl je in de instellingen een nieuwe opneemt.</summary>
+    public void SuspendHotkey() => NativeMethods.UnregisterHotKey(_hwnd, HotkeyId);
 
     /// <summary>De sneltoets uit de instellingen (opnieuw) aanmelden bij Windows.</summary>
     public void ApplyHotkey()
@@ -182,7 +183,11 @@ public partial class MainWindow : Window
             HotkeyProblem = Loc.T("Deze sneltoets is al in gebruik door een ander programma. Kies een andere.");
     }
 
-    /// <summary>Sneltoets: dashboard tonen, ook over vensters op dat scherm heen. Nog een keer drukken (of Esc) verbergt het.</summary>
+    /// <summary>
+    /// Sneltoets: dashboard tonen, ook over vensters op dat scherm heen. Het komt één keer naar voren (niet "altijd
+    /// bovenop"), dus een venster dat je erheen sleept of daar aanklikt komt er gewoon overheen. Nog een keer
+    /// drukken of Esc verbergt het.
+    /// </summary>
     private void ToggleManualShow()
     {
         if (IsVisible)
@@ -190,14 +195,46 @@ public partial class MainWindow : Window
             HideDashboard();
             return;
         }
+        _previousForeground = NativeMethods.GetForegroundWindow();
         _manualShow = true;
-        Topmost = true;
         ShowDashboard();
         if (!IsVisible)
         {
             _manualShow = false;
-            Topmost = false;
+            return;
         }
+        const uint SWP_NOSIZE = 0x1, SWP_NOMOVE = 0x2, SWP_NOACTIVATE = 0x10;
+        NativeMethods.SetWindowPos(_hwnd, IntPtr.Zero, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE);
+        Activate();   // toetsenbordfocus, zodat Esc meteen werkt
+        _lastSeen = ForegroundNow();
+        _manualWatch.Start();
+    }
+
+    private static (IntPtr Window, IntPtr Monitor) ForegroundNow()
+    {
+        IntPtr window = NativeMethods.GetForegroundWindow();
+        const uint MONITOR_DEFAULTTONEAREST = 2;
+        return (window, window == IntPtr.Zero ? IntPtr.Zero : NativeMethods.MonitorFromWindow(window, MONITOR_DEFAULTTONEAREST));
+    }
+
+    /// <summary>
+    /// Ga je het scherm van het dashboard gebruiken (een venster erheen slepen, of daar iets aanklikken),
+    /// dan stapt het dashboard opzij, net als wanneer het vanzelf verschijnt.
+    /// </summary>
+    private void WatchManualShow()
+    {
+        if (!_manualShow || !IsVisible || _target == null)
+        {
+            _manualWatch.Stop();
+            return;
+        }
+        var now = ForegroundNow();
+        if (now == _lastSeen) return;
+        _lastSeen = now;
+        if (now.Window == IntPtr.Zero || now.Window == _hwnd || now.Monitor != _target.Handle) return;
+        NativeMethods.GetWindowThreadProcessId(now.Window, out uint process);
+        if (process == (uint)Environment.ProcessId) return;   // eigen vensters van IdleDash, zoals de instellingen
+        HideDashboard();
     }
 
     private void ShowDashboard()
@@ -215,9 +252,13 @@ public partial class MainWindow : Window
 
     private void HideDashboard()
     {
+        bool wasManual = _manualShow;
         _manualShow = false;
-        Topmost = false;
+        _manualWatch.Stop();
         if (!IsVisible) return;
+        // Met de sneltoets opgeroepen en had het dashboard je toetsenbord? Dan gaat dat terug naar waar je was
+        if (wasManual && NativeMethods.GetForegroundWindow() == _hwnd && _previousForeground != IntPtr.Zero && NativeMethods.IsWindowVisible(_previousForeground))
+            NativeMethods.SetForegroundWindow(_previousForeground);
         if (_editMode) SetEditMode(false);
         AddPopup.IsOpen = false;
         foreach (var host in _hosts) host.Widget.Stop();

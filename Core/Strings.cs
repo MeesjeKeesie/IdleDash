@@ -698,7 +698,21 @@ internal static class Strings
         ["Laatste kwartier"] = "Last quarter",
         ["Afnemende sikkel"] = "Waning crescent",
         ["Sneltoets"] = "Keyboard shortcut",
-        ["Roep het dashboard op met een toetscombinatie, ook als er vensters op dat scherm staan. Druk nog een keer om het weer te verbergen."] = "Bring up the dashboard with a key combination, even when there are windows on that screen. Press it again to hide it.",
         ["Deze sneltoets is al in gebruik door een ander programma. Kies een andere."] = "This shortcut is already in use by another program. Choose a different one.",
+        // ── Nieuw in versie 1.4.1 ──
+        ["+{0} meer meldingen"] = "+{0} more notices",
+        ["Die combinatie kan niet. Gebruik twee van Ctrl, Alt en Shift (of de Windows-toets) samen met een letter, cijfer of F-toets."] = "That combination can't be used. Use two of Ctrl, Alt and Shift (or the Windows key) together with a letter, number or F key.",
+        ["Druk nu de toetsen die je wilt gebruiken… (Esc om te stoppen)"] = "Now press the keys you want to use… (Esc to stop)",
+        ["Gebruik twee van Ctrl, Alt en Shift (of de Windows-toets) samen met een letter, cijfer of F-toets."] = "Use two of Ctrl, Alt and Shift (or the Windows key) together with a letter, number or F key.",
+        ["Inzoomen"] = "Zoom in",
+        ["Uitzoomen"] = "Zoom out",
+        ["Terug naar je gekozen plek"] = "Back to your chosen place",
+        ["Meldingen van de vervoerder bovenaan het bord. Wijs een melding aan voor de hele uitleg."] = "Notices from the operator at the top of the board. Point at a notice for the full details.",
+        ["Op de kaart zelf kun je slepen om te schuiven en zoomen met het muiswiel of de knoppen. Met het huisje ga je terug naar deze plek."] = "On the map itself, drag to move around and zoom with the mouse wheel or the buttons. The house button takes you back to this place.",
+        ["Roep het dashboard op met een toetscombinatie, ook als er vensters op dat scherm staan. Druk nog een keer of op Esc om het weer te verbergen."] = "Bring up the dashboard with a key combination, even when there are windows on that screen. Press it again or Esc to hide it.",
+        ["Stoppen"] = "Stop",
+        ["Storingen en werkzaamheden tonen"] = "Show disruptions and engineering works",
+        ["Uitzetten"] = "Turn off",
+        ["Wijzigen"] = "Change",
     };
 }
